@@ -3,7 +3,7 @@ name: 용인 수집 (20분마다)
 on:
   schedule:
     - cron: "2,22,42 * * * *"    # 붐비면 늦어지거나 건너뛸 수 있음
-  workflow_dispatch:              # Actions 탭 "Run workflow" = 즉시 갱신
+  workflow_dispatch:              # Actions 탭 "Run workflow" = 즉시 갱신 (차단 의심으로 쉬는 중이면 시간표는 캐시 값 사용)
   push:                           # 화면(index.html)을 고쳐 올리면 이 워크플로가 사이트에 배포
     branches: [main]
     paths: ["tennis/**", "scripts/**", "web/index.html", ".github/workflows/collect-yongin.yml"]
