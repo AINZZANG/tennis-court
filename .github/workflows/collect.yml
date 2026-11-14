@@ -35,6 +35,10 @@ jobs:
           restore-keys: collect-cache-
 
       - name: 수집
+        env:
+          YONGIN_INTERVAL: "1.5"       # 용인 요청 간격(초)
+          YONGIN_SLOT_BUDGET: "700"    # 한 번에 2주 치 전부 (약 610건)
+          YONGIN_TTL_FAR_MIN: "50"     # 먼 날짜도 빈자리가 있으면 매시간
         run: python -m tennis.collect --days 14
 
       - name: 웹용 데이터 만들기

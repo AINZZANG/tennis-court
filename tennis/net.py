@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import http.cookiejar
 import json
+import os
 import time
 import urllib.parse
 import urllib.request
@@ -25,7 +26,8 @@ class PoliteClient:
         )
 
     # 사이트별 최소 간격(초). 용인은 짧은 시간에 25~30건이 몰리면 IP를 차단한다고 알려져 있음.
-    HOST_INTERVALS = {"publicsports.yongin.go.kr": 5.0}
+    # GitHub Actions 에서는 YONGIN_INTERVAL 로 줄인다 (차단돼도 집 IP가 아니라 실행 서버가 막힘).
+    HOST_INTERVALS = {"publicsports.yongin.go.kr": float(os.environ.get("YONGIN_INTERVAL", "5.0"))}
 
     def _wait(self, url: str) -> None:
         host = urllib.parse.urlsplit(url).netloc

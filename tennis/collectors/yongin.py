@@ -30,9 +30,11 @@ PAGE_UNIT = 8          # 사이트가 페이지당 8개로 고정
 MAX_PAGES = 60         # 안전장치
 DETAIL_TTL = 24 * 3600
 ITEMS_TTL = 6 * 3600
-SLOT_BUDGET = int(os.environ.get("YONGIN_SLOT_BUDGET", "150"))     # 한 번 실행에 보내는 시간표 요청 상한 (5초 간격). 차단 없으면 330까지 올릴 예정
-TTL_NEAR = 50 * 60     # 내일~3일 후, 주말: 매시간 갱신
-TTL_FAR = 170 * 60     # 그 외: 약 3시간마다
+# 한 번 실행에 보내는 시간표 요청 상한. PC 기본값은 보수적으로, GitHub Actions 에서는 env 로 올린다.
+SLOT_BUDGET = int(os.environ.get("YONGIN_SLOT_BUDGET", "150"))
+TTL_NEAR = 50 * 60     # 매시간 갱신 (빈자리가 있거나, 3일 이내, 주말)
+TTL_FAR = int(os.environ.get("YONGIN_TTL_FAR_MIN", "170")) * 60   # 4일 이후 평일
+TTL_FULL_FAR = 170 * 60  # 4일 이후인데 꽉 찼거나 마감인 날: 빈자리가 다시 생길 일이 드물어 약 3시간마다
 BLOCK_SEC = 3600       # 이상 응답 시 쉬는 시간
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "cache"
 CACHE = CACHE_DIR / "yongin_detail.json"
@@ -212,6 +214,8 @@ class YonginCollector(Collector):
             ent = cache.get(f"{rid}|{d.isoformat()}")
             ahead = (d - today).days
             ttl = TTL_NEAR if ahead <= 3 or d.weekday() >= 5 else TTL_FAR
+            if ent and ahead > 3 and not ent.get("a"):
+                ttl = max(ttl, TTL_FULL_FAR)
             age = now - ent["_at"] if ent else 10 ** 9
             return age - ttl          # > 0 이면 갱신 필요
 
@@ -226,6 +230,11 @@ class YonginCollector(Collector):
             except Exception as e:
                 fails += 1
                 self.errors.append({"source": self.name, "court": rid, "date": d.isoformat(), "error": repr(e)[:200]})
+                if fails == 1:      # 첫 실패 → 30초 쉬고 간격을 두 배로 늘려 계속
+                    host = "publicsports.yongin.go.kr"
+                    cur = self.client.HOST_INTERVALS.get(host, 5.0)
+                    self.client.HOST_INTERVALS = {**self.client.HOST_INTERVALS, host: max(cur * 2, 5.0)}
+                    time.sleep(30)
                 if fails >= 2:      # 연속 실패 → 차단 의심, 즉시 멈추고 쉰다
                     _write_json(BLOCK_FILE, {"until": time.time() + BLOCK_SEC, "reason": repr(e)[:200]})
                     self.errors.append({"source": self.name, "error": f"연속 실패로 {BLOCK_SEC // 60}분간 중단"})
