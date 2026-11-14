@@ -5,7 +5,7 @@
   "collected_at": "...",
   "facilities": [{id, name, city, district, address, courts, booking_url, extra}],
   "courts": [[facility_index, court_label, booking_url], ...],
-  "slots": [[court_index, "MM-DD", "HH:MM", "HH:MM", "a|b|c|u"], ...]   # 연도는 date_year
+  "slots": [[court_index, "MM-DD", "HH:MM", "HH:MM", "a|b|c|p|u"], ...]  # p = 접수 시작 전   # 연도는 date_year
   "date_year": {"MM-DD": "YYYY"},
   "errors": n
 }
@@ -16,7 +16,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-CODE = {"available": "a", "booked": "b", "closed": "c", "unknown": "u"}
+CODE = {"available": "a", "booked": "b", "closed": "c", "preopen": "p", "unknown": "u"}
 
 
 def export(src: Path = ROOT / "data" / "snapshot.json", dst: Path = ROOT / "web" / "data.json") -> int:

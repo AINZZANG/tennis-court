@@ -220,7 +220,10 @@ class YonginCollector(Collector):
             return age - ttl          # > 0 이면 갱신 필요
 
         todo = [(rid, d) for rid, d in tasks if due(rid, d) > 0]
-        todo.sort(key=lambda t: ((t[1] - today).days > 3 and t[1].weekday() < 5, (t[1] - today).days))
+        # 우선순위: 한 번도 받은 적 없는 칸 → 가까운 날·주말 → 나머지 (먼 날짜가 굶지 않게)
+        todo.sort(key=lambda t: (f"{t[0]}|{t[1].isoformat()}" in cache,
+                                 (t[1] - today).days > 3 and t[1].weekday() < 5,
+                                 (t[1] - today).days))
         fails = done = 0
         for rid, d in todo[:SLOT_BUDGET]:
             try:
@@ -300,17 +303,18 @@ class YonginCollector(Collector):
             fac.courts = len({i["court"] for i in items}) or None
         self._save_cache(cache)
 
-        # ---- 시간표: 날짜별로 "접수중인 일반예약" 항목을 찾아 조회 ----
+        # ---- 시간표: 날짜별로 그 달의 "일반예약" 항목을 찾아 조회 ----
+        # 접수중이면 빈 칸 = 예약 가능, 접수대기(다음 달분 등)면 빈 칸 = 접수 전(PREOPEN)
         first = max(start, date.today() + timedelta(days=1))   # 당일 예약 불가 → 내일부터
         days = [first + timedelta(days=i) for i in range((end - first).days + 1)]
         tasks: list[tuple[str, date]] = []
-        meta: dict[str, tuple[str, str, str]] = {}            # rid -> (fid, court, url)
+        meta: dict[str, tuple[str, str, str, bool]] = {}      # rid -> (fid, court, url, 접수중?)
         for fac in facilities.values():
             for it in fac.extra["items"]:
-                if it["kind"] != "일반예약" or it["state"] != "접수중":
+                if it["kind"] != "일반예약" or it["state"] not in ("접수중", "접수대기"):
                     continue
                 a, _, b = (x.strip() for x in it["use_period"].partition("~"))
-                meta[it["resve_id"]] = (fac.id, it["court"] or "단독", it["url"])
+                meta[it["resve_id"]] = (fac.id, it["court"] or "단독", it["url"], it["state"] == "접수중")
                 tasks += [(it["resve_id"], d) for d in days if a <= d.isoformat() <= b]
         slot_cache = self.refresh_slots(tasks)
 
@@ -319,13 +323,14 @@ class YonginCollector(Collector):
             ent = slot_cache.get(f"{rid}|{d.isoformat()}")
             if not ent:
                 continue
-            fid, court, url = meta[rid]
+            fid, court, url, accepting = meta[rid]
             checked = datetime.fromtimestamp(ent["_at"]).astimezone().isoformat(timespec="minutes")
             if ent.get("closed"):
                 fac = facilities[fid]
                 fac.extra.setdefault("closed_days", {}).setdefault(court, []).append(d.isoformat())
                 continue
-            for code, status in (("a", Status.AVAILABLE), ("b", Status.BOOKED)):
+            free = Status.AVAILABLE if accepting else Status.PREOPEN
+            for code, status in (("a", free), ("b", Status.BOOKED)):
                 for s_, e_ in ent.get(code, []):
                     slots.append(Slot(facility_id=fid, court=court, date=d.isoformat(), start=s_, end=e_,
                                       status=status, booking_url=url, checked_at=checked))

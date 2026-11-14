@@ -9,7 +9,8 @@ from enum import Enum
 class Status(str, Enum):
     AVAILABLE = "available"   # 예약 가능 (빈 코트)
     BOOKED = "booked"         # 예약됨
-    CLOSED = "closed"         # 마감/운영 안 함/예약 오픈 전
+    CLOSED = "closed"         # 마감/운영 안 함
+    PREOPEN = "preopen"       # 비어 있지만 아직 접수 시작 전 (용인 다음 달분 등)
     UNKNOWN = "unknown"
 
 
