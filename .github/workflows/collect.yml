@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: "7 * * * *"          # 매시 7분 (UTC 기준이지만 매시간이라 상관없음). GitHub 사정으로 늦어질 수 있음
   workflow_dispatch:              # Actions 탭의 "Run workflow" 버튼 = 즉시 갱신
-  push:                           # 코드나 화면을 고쳐 올리면 바로 다시 수집·배포
+  push:                           # 코드나 화면을 고쳐 올리면 바로 다시 수집·배포 (강제 푸시는 감지 안 될 수 있음)
     branches: [main]
     paths: ["tennis/**", "web/index.html", ".github/workflows/collect.yml"]
 
