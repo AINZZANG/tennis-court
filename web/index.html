@@ -207,6 +207,9 @@ section.block { padding-top: 26px; padding-bottom: 26px; }
 .slot.b { background: var(--fill); color: var(--faint); text-decoration: line-through; }
 .slot.c { color: var(--faint); border-color: var(--line); }
 .slot.today { color: var(--fg); border-color: var(--fg); background: var(--bg); }
+.slot.p { color: var(--sub); border: 1px dashed var(--sub); background: var(--bg); }
+.prenote { font: 400 .72rem/1.5 var(--font-body); color: var(--sub); padding: 8px 10px; background: var(--fill); }
+.cell .c.pre { color: var(--sub); border-bottom: 1px dashed var(--faint); }
 .none { grid-column: 1 / -1; font-size: .78rem; color: var(--faint); }
 .court-name small { display: block; font: 400 .6rem/1.3 var(--font-num); letter-spacing: .02em; color: var(--faint); }
 .closed { font: 400 .74rem/1.9 var(--font-body); color: var(--faint); }
@@ -309,6 +312,7 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
       <span><span class="slot a">08:00</span> 예약 가능 — 누르면 예약 페이지</span>
       <span><span class="slot b">08:00</span> 예약됨</span>
       <span><span class="slot c">08:00</span> 운영 안 함</span>
+      <span><span class="slot p">08:00</span> 비어 있지만 접수 시작 전</span>
     </div>
 
     <div class="note" id="today-note" hidden>이용일 하루 전에 예약을 마감합니다. 오늘 비어 있는 시간은 참고용입니다.</div>
@@ -378,6 +382,21 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
     const w = new Date(iso + "T00:00:00").getDay();
     return w === 0 || w === 6 || HOLIDAYS.has(iso);
   };
+  // 그 날짜가 든 달의 '일반예약' 접수 시작일 (용인). 없으면 빈 문자열
+  const openDateFor = (f, iso) => {
+    for (const it of f.extra.items || []) {
+      if (it.kind !== "일반예약") continue;
+      if ((it.use_period || "").slice(0, 7) !== iso.slice(0, 7)) continue;
+      const s = (it.accept_period || "").split("~")[0].trim();
+      if (s) return s;
+    }
+    return "";
+  };
+  const openLabel = (f, iso) => {
+    const s = openDateFor(f, iso);
+    return s ? `${+s.slice(5, 7)}월 ${+s.slice(8, 10)}일` : "";
+  };
+
   const bandFor = (iso) => (isHoliday(iso) ? state.bandHol : state.bandWd);
   const BAND_TXT = { all: "하루 전체", am: "오전", pm: "오후", ev: "저녁" };
 
@@ -545,39 +564,50 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
     const places = new Set(), openByFac = new Map();
 
     for (const iso of dates) {
-      const rows = byDate[iso].filter((x) => state.vis.has(x.ci) && x.s === "a" && inBand(x.start, bandFor(iso)));
-      if (!rows.length) continue;
+      const vis = byDate[iso].filter((x) => state.vis.has(x.ci) && inBand(x.start, bandFor(iso)));
+      const rows = vis.filter((x) => x.s === "a");          // 지금 예약할 수 있는 칸
+      const pres = vis.filter((x) => x.s === "p");          // 비어 있지만 접수 시작 전
+      if (!rows.length && !pres.length) continue;
       total += rows.length;
-      const byFac = new Map();                       // 시설 → (시작시각 → 비어 있는 코트들)
-      for (const r of rows) {
+      const byFac = new Map();                              // 시설 → {a: 시작시각→코트들, p: 같은 형식}
+      for (const r of rows.concat(pres)) {
         const [fi] = d.courts[r.ci];
-        if (!byFac.has(fi)) byFac.set(fi, new Map());
-        const times = byFac.get(fi);
+        if (!byFac.has(fi)) byFac.set(fi, { a: new Map(), p: new Map() });
+        const times = byFac.get(fi)[r.s === "p" ? "p" : "a"];
         if (!times.has(r.start)) times.set(r.start, []);
         times.get(r.start).push(r.ci);
       }
-      const facHtml = [...byFac.entries()].map(([fi, times]) => {
+      const facHtml = [...byFac.entries()].map(([fi, g]) => {
         const f = d.facilities[fi];
-        places.add(f.id);
         let n = 0;
-        const chips = [...times.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([start, cis]) => {
-          n += cis.length;
-          const labels = cis.map((ci) => d.courts[ci][1]).filter(Boolean).join(", ");
-          return `<a class="slot a" href="${esc(d.courts[cis[0]][2])}" target="_blank" rel="noopener"
-            title="${iso} ${start}${labels ? ` · ${esc(labels)}` : ""} 비어 있음">${start}${cis.length > 1 ? `<sup>${cis.length}</sup>` : ""}</a>`;
-        }).join("");
+        const chip = (start, cis, pre) => {
+          const who = cis.map((ci) => d.courts[ci][1]).filter(Boolean).join(", ");
+          const sup = cis.length > 1 ? `<sup>${cis.length}</sup>` : "";
+          const tail = who ? ` · ${esc(who)}` : "";
+          return pre
+            ? `<span class="slot p" title="${iso} ${start}${tail} 비어 있지만 접수 시작 전">${start}${sup}</span>`
+            : `<a class="slot a" href="${esc(d.courts[cis[0]][2])}" target="_blank" rel="noopener"
+                title="${iso} ${start}${tail} 비어 있음">${start}${sup}</a>`;
+        };
+        const aChips = [...g.a.entries()].sort((x, y) => x[0].localeCompare(y[0]))
+          .map(([start, cis]) => { n += cis.length; return chip(start, cis, false); }).join("");
+        const pChips = [...g.p.entries()].sort((x, y) => x[0].localeCompare(y[0]))
+          .map(([start, cis]) => chip(start, cis, true)).join("");
+        if (n) places.add(f.id);
         openByFac.set(f.id, (openByFac.get(f.id) || 0) + n);
-        const sub = f.city === "용인" ? f.district : [f.extra.fee, `${f.courts}면`].filter(Boolean).join(" · ");
+        const openTxt = g.p.size ? openLabel(f, iso) : "";
+        const sub = [f.city === "용인" ? f.district : [f.extra.fee, `${f.courts}면`].filter(Boolean).join(" · "),
+                     g.p.size ? (openTxt ? `${openTxt} 접수 시작` : "접수 시작 전") : ""].filter(Boolean).join(" · ");
         return { n, html: `<div class="arow">
-          <div class="aname">${esc(f.name)}<span class="ameta">${esc(sub || "")}</span></div>
-          <div class="slots">${chips}</div></div>` };
+          <div class="aname">${esc(f.name)}<span class="ameta">${esc(sub)}</span></div>
+          <div class="slots">${aChips}${pChips}</div></div>` };
       }).sort((a, b) => b.n - a.n).map((x) => x.html).join("");
       const dt = new Date(iso + "T00:00:00");
       const we = dt.getDay() === 0 || dt.getDay() === 6;
       html += `<section class="dayblk">
         <div class="dayblk-head">
           <div class="db-d">${dt.getMonth() + 1}.${pad(dt.getDate())}<span class="db-w${we ? " we" : ""}">${WD[dt.getDay()]}</span></div>
-          <div class="db-n">${rows.length}칸 · ${byFac.size}곳</div>
+          <div class="db-n">${rows.length ? `${rows.length}칸 · ${byFac.size}곳` : `${byFac.size}곳`}${pres.length ? ` · 접수 전 ${pres.length}칸` : ""}</div>
         </div>${facHtml}</section>`;
     }
 
@@ -640,7 +670,12 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
 
     const have = new Set(dates);
     const counts = {};
-    for (const iso of dates) counts[iso] = byDate[iso].filter((x) => state.vis.has(x.ci) && x.s === "a" && inBand(x.start, bandFor(iso))).length;
+    const preCounts = {};
+    for (const iso of dates) {
+      const vis = byDate[iso].filter((x) => state.vis.has(x.ci) && inBand(x.start, bandFor(iso)));
+      counts[iso] = vis.filter((x) => x.s === "a").length;
+      preCounts[iso] = vis.filter((x) => x.s === "p").length;
+    }
 
     // 보여줄 달: 선택한 날짜가 든 달 (수집 데이터가 있는 달만 이동 가능)
     const months = new Set(dates.map(monthKey));
@@ -651,6 +686,7 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
     const prev = shiftMonth(state.month, -1);
     const next = shiftMonth(state.month, 1);
 
+    let anyPre = false;
     const blank = '<div class="cell pad"><span class="d"></span><span class="c"></span></div>';
     let cells = blank.repeat(firstDow);
     for (let day = 1; day <= lastDate; day++) {
@@ -659,12 +695,15 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
       const inR = have.has(iso);
       const isToday = iso === today;
       const n = counts[iso] || 0;
+      const pre = preCounts[iso] || 0;
+      const onlyPre = !n && pre > 0;                     // 빈 칸은 있지만 아직 접수 전인 날
+      if (onlyPre && inR) anyPre = true;
       const cls = ["cell", inR ? "" : "off", dow === 0 ? "sun" : "", isToday ? "today" : ""].filter(Boolean).join(" ");
-      const txt = inR ? (isToday ? "–" : n) : "";
-      const aria = `${M}월 ${day}일${inR ? (isToday ? " 오늘" : ` 빈 시간 ${n}칸`) : " 데이터 없음"}`;
+      const txt = inR ? (isToday ? "–" : (onlyPre ? pre : n)) : "";
+      const aria = `${M}월 ${day}일${inR ? (isToday ? " 오늘" : (onlyPre ? ` 접수 시작 전 ${pre}칸` : ` 빈 시간 ${n}칸`)) : " 데이터 없음"}`;
       cells += `<button class="${cls}" id="day-${iso}" aria-pressed="${!state.allDays && iso === state.day}" aria-label="${aria}"
         ${inR ? `data-day="${iso}"` : "disabled"}><span class="d">${day}</span>
-        <span class="c${inR && !isToday && n ? "" : " z"}">${txt}</span></button>`;
+        <span class="c${onlyPre ? " pre" : (inR && !isToday && n ? "" : " z")}">${txt}</span></button>`;
     }
     cells += blank.repeat((7 - (firstDow + lastDate) % 7) % 7);
 
@@ -680,7 +719,8 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
       <div class="cal-grid">${cells}</div>
       <p class="cal-cap">${state.allDays
         ? "모든 날짜 모드입니다. 아래에 수집된 날짜 전체에서 조건에 맞는 빈 시간만 모아 보여줍니다. 날짜를 누르면 그 날짜만 봅니다."
-        : "날짜 아래 숫자는 그날 예약 가능한 시간 칸 수입니다. 오늘은 당일 예약이 마감돼 –로 표시합니다."}</p>`;
+        : "날짜 아래 숫자는 그날 예약 가능한 시간 칸 수입니다. 오늘은 당일 예약이 마감돼 –로 표시합니다."}${
+        anyPre ? " 점선 밑줄이 그려진 숫자는 비어 있지만 아직 접수가 시작되지 않은 칸 수입니다." : ""}</p>`;
   }
 
   function renderHw() {
@@ -716,6 +756,8 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
     const cards = [...facs.entries()].map(([fi, courts]) => {
       const f = d.facilities[fi];
       let open = 0;
+      const preOpen = openLabel(f, state.day);
+      const hasPre = !state.onlyOpen && [...courts.values()].some((ss) => ss.some((s) => s.s === "p"));
       const closedHtml = state.onlyOpen ? "" : (closedBy.get(fi) || []).map((c) =>
         `<div class="court"><div class="court-name">${esc(c)}</div><div class="closed">이날은 예약 마감</div></div>`).join("");
       const courtHtml = [...courts.entries()]
@@ -731,6 +773,7 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
             const title = `${s.start}~${s.end}`;
             if (s.s === "a" && !isToday) return `<a class="slot a" href="${esc(url)}" target="_blank" rel="noopener" title="${title} 예약 가능">${s.start}</a>`;
             if (s.s === "a") return `<span class="slot today" title="${title} 비어 있음(당일 예약 불가)">${s.start}</span>`;
+            if (s.s === "p") return `<span class="slot p" title="${title} 비어 있지만 접수 시작 전${preOpen ? ` (${preOpen} 접수 시작)` : ""}">${s.start}</span>`;
             return `<span class="slot ${s.s}" title="${title}">${s.start}</span>`;
           }).join("");
           return `<div class="court"><div class="court-name">${esc(label)}${checked ? `<small>${checked}</small>` : ""}</div><div class="slots">${pills}</div></div>`;
@@ -746,7 +789,8 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
           <div class="fac-meta">${meta}</div></div>
           <div class="cnt${n ? "" : " zero"}">${isToday ? "–" : n}<small>빈 시간</small></div>
         </div>
-        ${courtHtml || '<div class="court"><div class="none">조건에 맞는 빈 시간이 없습니다.</div></div>'}</article>` };
+        ${courtHtml || '<div class="court"><div class="none">조건에 맞는 빈 시간이 없습니다.</div></div>'}
+        ${hasPre ? `<div class="prenote">점선 표시된 시간은 비어 있지만 ${preOpen ? `${preOpen}에 접수가 시작됩니다` : "아직 접수가 시작되지 않았습니다"} — 그 전에는 예약할 수 없습니다.</div>` : ""}</article>` };
     });
     cards.sort((a, b) => b.open - a.open);
     renderMap(new Map(cards.map((c) => [c.id, c.open])), isToday);
