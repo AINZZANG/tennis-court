@@ -1,0 +1,57 @@
+name: 테니스장 예약현황 수집
+
+on:
+  schedule:
+    - cron: "7 * * * *"          # 매시 7분 (UTC 기준이지만 매시간이라 상관없음). GitHub 사정으로 늦어질 수 있음
+  workflow_dispatch:              # Actions 탭의 "Run workflow" 버튼 = 즉시 갱신
+  push:                           # 코드나 화면을 고쳐 올리면 바로 다시 수집·배포
+    branches: [main]
+    paths: ["tennis/**", "web/index.html", ".github/workflows/collect.yml"]
+
+permissions:
+  contents: write                 # gh-pages 브랜치에 올리기 위해
+
+concurrency:
+  group: collect                  # 겹쳐 실행하지 않음 (용인 차단 방지)
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 용인 시간표 캐시·목록 캐시·좌표 캐시를 실행 사이에 이어받는다
+      - name: 캐시 복원
+        uses: actions/cache@v4
+        with:
+          path: data/cache
+          key: collect-cache-${{ github.run_id }}
+          restore-keys: collect-cache-
+
+      - name: 수집
+        run: python -m tennis.collect --days 14
+
+      - name: 웹용 데이터 만들기
+        run: python -m tennis.export
+
+      - name: gh-pages 에 배포
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OUT=$(mktemp -d)
+          cp web/index.html web/data.json "$OUT"/
+          touch "$OUT/.nojekyll"
+          cd "$OUT"
+          git init -q -b gh-pages
+          git config user.name "tennis-bot"
+          git config user.email "tennis-bot@users.noreply.github.com"
+          git add -A
+          git commit -q -m "데이터 갱신 $(TZ=Asia/Seoul date '+%F %H:%M')"
+          git push -q --force "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+          echo "배포 완료"

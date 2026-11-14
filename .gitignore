@@ -1,0 +1,10 @@
+# 실행 중에 생기는 것들 (GitHub Actions 캐시로 따로 이어받음)
+data/
+logs/
+web/data.json
+__pycache__/
+*.tmp
+
+# 이 PC 전용
+.remember/
+deploy.conf
