@@ -31,7 +31,7 @@ class PoliteClient:
 
     def _wait(self, url: str) -> None:
         host = urllib.parse.urlsplit(url).netloc
-        gap = max(self.min_interval, self.HOST_INTERVALS.get(host, 0))
+        gap = self.HOST_INTERVALS.get(host, self.min_interval)   # 사이트별 간격이 있으면 그것을 따름
         elapsed = time.monotonic() - self._last.get(host, 0)
         if elapsed < gap:
             time.sleep(gap - elapsed)
