@@ -156,6 +156,9 @@ section.block { padding-top: 26px; padding-bottom: 26px; }
             font: 400 .82rem/1 var(--font-body); letter-spacing: -.01em; }
 .pick-btn em { font: 400 .7rem/1 var(--font-num); font-style: normal; letter-spacing: .06em; color: var(--sub); }
 .pick-btn .caret { margin-left: auto; font: 300 1.05rem/1 var(--font-num); color: var(--sub); }
+.pick-hd { display: flex; align-items: center; gap: 8px; padding: 14px 0;
+           font: 400 .82rem/1 var(--font-body); letter-spacing: -.01em; }
+.pick-hd em { margin-left: auto; font: 400 .7rem/1 var(--font-num); font-style: normal; letter-spacing: .06em; color: var(--sub); }
 .pick-body { padding-bottom: 12px; }
 .pick-acts { display: flex; gap: 6px; padding-bottom: 12px; }
 .pick-acts .chip { padding: 7px 12px; font-size: .72rem; }
@@ -295,11 +298,6 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
 
     <div class="pick" id="pick-hw"></div>
 
-    <div class="pick" id="mapbox">
-      <button class="pick-btn" data-mapt="1" aria-expanded="true" aria-controls="map-wrap">지도에서 위치 보기 <em id="map-note"></em><span class="caret" id="map-caret" aria-hidden="true">−</span></button>
-      <div class="map-wrap" id="map-wrap"></div>
-    </div>
-
     <div class="summary">
       <div>
         <p class="eyebrow">Available</p>
@@ -319,6 +317,11 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
     <div class="note" id="yi-note" hidden>용인 사이트는 요청이 몰리면 접속을 막기 때문에 코트를 천천히 돌아가며 확인합니다. 코트를 나눠 돌아가며 확인하기 때문에 코트마다 확인 시각이 조금씩 다릅니다 — 코트 이름 아래에 확인한 시각을 적어 둡니다. 예약 직전에 예약 페이지에서 한 번 더 확인하세요.</div>
 
     <div class="list" id="hw-list"></div>
+
+    <div class="pick" id="mapbox">
+      <button class="pick-btn" data-mapt="1" aria-expanded="true" aria-controls="map-wrap">지도에서 위치 보기 <em id="map-note"></em><span class="caret" id="map-caret" aria-hidden="true">−</span></button>
+      <div class="map-wrap" id="map-wrap"></div>
+    </div>
   </section>
 
   <section id="view-yi" class="block" hidden>
@@ -346,7 +349,7 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
   const WD = ["일", "월", "화", "수", "목", "금", "토"];
   const WD_EN = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
   const state = { city: "화성", day: null, month: null, bandWd: "all", bandHol: "all", onlyOpen: false, gu: "전체",
-                hidden: new Set(), pick: {}, vis: null, mapOpen: true, mapSel: null, allDays: false, data: null };
+                hidden: new Set(), vis: null, mapOpen: true, mapSel: null, allDays: false, data: null };
 
   try {
     const saved = JSON.parse(localStorage.getItem("tennis-prefs") || "{}");
@@ -440,7 +443,6 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
     const el = city === "화성" ? $("#pick-hw") : $("#pick-yi");
     const facs = cityFacilities(city);
     const on = facs.filter((f) => !state.hidden.has(f.id)).length;
-    const open = !!state.pick[city];
     const row = (f) => {
       const sel = !state.hidden.has(f.id);
       const meta = city === "용인"
@@ -457,9 +459,8 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
       ? `<div class="pick-group">자주 가는 곳</div>${favs.map(row).join("")}`
         + `<div class="pick-group">그 외</div>${rest.map(row).join("")}`
       : rest.map(row).join("");
-    el.innerHTML = `<button class="pick-btn" data-pick="${city}" aria-expanded="${open}" aria-controls="pick-body-${city}">
-        테니스장 선택 <em>${on} / ${facs.length}곳 표시</em><span class="caret" aria-hidden="true">${open ? "−" : "+"}</span></button>
-      <div class="pick-body" id="pick-body-${city}"${open ? "" : " hidden"}>
+    el.innerHTML = `<div class="pick-hd">테니스장 선택 <em>${on} / ${facs.length}곳 표시</em></div>
+      <div class="pick-body" id="pick-body-${city}">
         <div class="pick-acts">
           <button class="chip" data-pickall="${city}">전체 선택</button>
           <button class="chip" data-picknone="${city}">전체 해제</button>
@@ -914,7 +915,6 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
       if (state.hidden.has(t.dataset.fac)) state.hidden.delete(t.dataset.fac);
       else state.hidden.add(t.dataset.fac);
     }
-    else if (t.dataset.pick) state.pick[t.dataset.pick] = !state.pick[t.dataset.pick];
     else if (t.dataset.mapt) state.mapOpen = !state.mapOpen;
     else if (t.dataset.pickall) cityFacilities(t.dataset.pickall).forEach((f) => state.hidden.delete(f.id));
     else if (t.dataset.picknone) cityFacilities(t.dataset.picknone).forEach((f) => state.hidden.add(f.id));
