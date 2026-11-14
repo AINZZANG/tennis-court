@@ -42,12 +42,13 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=14)
     ap.add_argument("--only", default="")
+    ap.add_argument("--out", default=str(DATA_DIR / "snapshot.json"), help="결과 파일 (도시별로 따로 저장할 때)")
     args = ap.parse_args()
     only = {s.strip() for s in args.only.split(",") if s.strip()} or None
 
     snap = run(args.days, only)
-    DATA_DIR.mkdir(exist_ok=True)
-    out = DATA_DIR / "snapshot.json"
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(".tmp")
     tmp.write_text(json.dumps(asdict(snap), ensure_ascii=False, default=str), encoding="utf-8")
     tmp.replace(out)  # 대시보드가 반쯤 쓴 파일을 읽지 않도록

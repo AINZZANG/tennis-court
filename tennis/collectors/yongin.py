@@ -32,7 +32,7 @@ DETAIL_TTL = 24 * 3600
 ITEMS_TTL = 6 * 3600
 # 한 번 실행에 보내는 시간표 요청 상한. PC 기본값은 보수적으로, GitHub Actions 에서는 env 로 올린다.
 SLOT_BUDGET = int(os.environ.get("YONGIN_SLOT_BUDGET", "150"))
-TTL_NEAR = 50 * 60     # 매시간 갱신 (빈자리가 있거나, 3일 이내, 주말)
+TTL_NEAR = int(os.environ.get("YONGIN_TTL_NEAR_MIN", "50")) * 60   # 3일 이내·주말
 TTL_FAR = int(os.environ.get("YONGIN_TTL_FAR_MIN", "170")) * 60   # 4일 이후 평일
 TTL_FULL_FAR = 170 * 60  # 4일 이후인데 꽉 찼거나 마감인 날: 빈자리가 다시 생길 일이 드물어 약 3시간마다
 BLOCK_SEC = 3600       # 이상 응답 시 쉬는 시간
