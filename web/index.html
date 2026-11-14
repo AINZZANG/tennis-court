@@ -54,7 +54,7 @@ a { color: inherit; }
 .brand b { font-weight: 600; }
 .brand span { display: block; margin-top: 6px; font: 300 .72rem/1 var(--font-body); letter-spacing: .06em; color: var(--sub); }
 .stamp { font: 400 .68rem/1.5 var(--font-num); letter-spacing: .08em; color: var(--sub); text-align: right; max-width: 48%; }
-.stamp.stale { color: var(--point); }
+.stamp.stale, .stamp .late { color: var(--point); }
 
 .citynav { display: flex; gap: 22px; }
 .citytab { appearance: none; border: 0; background: none; color: var(--faint); cursor: pointer;
@@ -316,7 +316,7 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
     </div>
 
     <div class="note" id="today-note" hidden>이용일 하루 전에 예약을 마감합니다. 오늘 비어 있는 시간은 참고용입니다.</div>
-    <div class="note" id="yi-note" hidden>용인 사이트는 요청이 몰리면 접속을 막기 때문에 코트를 천천히 돌아가며 확인합니다. 내일부터 3일과 주말은 매시간, 나머지 날짜는 약 3시간마다 갱신되고, 코트 이름 아래에 확인한 시각을 적어 둡니다. 예약 직전에 예약 페이지에서 한 번 더 확인하세요.</div>
+    <div class="note" id="yi-note" hidden>용인 사이트는 요청이 몰리면 접속을 막기 때문에 코트를 천천히 돌아가며 확인합니다. 코트를 나눠 돌아가며 확인하기 때문에 코트마다 확인 시각이 조금씩 다릅니다 — 코트 이름 아래에 확인한 시각을 적어 둡니다. 예약 직전에 예약 페이지에서 한 번 더 확인하세요.</div>
 
     <div class="list" id="hw-list"></div>
   </section>
@@ -331,7 +331,7 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
 
   <footer>
     <b>Source</b>
-    화성도시공사 통합예약 · 용인시 공공시설 예약 데이터를 1시간마다 자동 수집합니다.<br>
+    화성도시공사 통합예약 · 용인시 공공시설 예약 데이터를 자동 수집합니다 — 화성 5분, 용인 20분 간격.<br>
     실제 예약 가능 여부는 각 예약 페이지에서 최종 확인하세요.
     <div class="credit">
       <b>Made by</b>
@@ -623,13 +623,24 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
 
   function renderUpdated(d) {
     const el = $("#updated");
-    const t = new Date(d.collected_at);
-    const mins = Math.round((Date.now() - t.getTime()) / 60000);
-    const when = `${pad(t.getMonth() + 1)}.${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}`;
-    const ago = mins < 1 ? "방금" : mins < 60 ? `${mins}분 전` : `${Math.floor(mins / 60)}시간 ${mins % 60}분 전`;
-    el.innerHTML = `UPDATED ${when}<br>${ago} · 1시간마다 갱신`;
-    el.classList.toggle("stale", mins > 120);
-    if (mins > 120) el.innerHTML = `UPDATED ${when}<br>${ago} · 갱신 지연, 수집 PC 확인`;
+    const agoOf = (iso) => {
+      const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+      return { m, txt: m < 1 ? "방금" : m < 60 ? `${m}분 전` : `${Math.floor(m / 60)}시간 ${m % 60}분 전` };
+    };
+    const by = d.collected || {};
+    // 도시마다 수집 주기가 달라서(화성 5분·용인 20분) 따로 보여준다
+    const rows = ["화성", "용인"].filter((c) => by[c]).map((c) => {
+      const t = new Date(by[c]);
+      const { m, txt } = agoOf(by[c]);
+      const late = m > (c === "화성" ? 40 : 70);
+      return `<span class="${late ? "late" : ""}">${c} ${pad(t.getHours())}:${pad(t.getMinutes())} · ${txt}</span>`;
+    });
+    el.classList.remove("stale");
+    if (rows.length) { el.innerHTML = `UPDATED<br>${rows.join("<br>")}`; return; }
+    const t = new Date(d.collected_at);                      // collected 필드가 없는 예전 데이터
+    const { m, txt } = agoOf(d.collected_at);
+    el.innerHTML = `UPDATED ${pad(t.getMonth() + 1)}.${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}<br>${txt}`;
+    el.classList.toggle("stale", m > 120);
   }
 
   // ---------- 화성 ----------
@@ -912,24 +923,33 @@ footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .
     render();
   });
 
+  // 사이트(gh-pages)의 data.json 은 20분마다만 갱신된다(Pages 빌드 횟수 제한).
+  // 그래서 5분마다 갱신되는 data 브랜치를 먼저 보고, 실패하면 사이트 사본으로 넘어간다.
+  const DATA_URLS = [
+    "https://raw.githubusercontent.com/AINZZANG/tennis-court/data/data.json",
+    "data.json",
+  ];
   async function load() {
-    try {
-      const res = await fetch("data.json?t=" + Date.now(), { cache: "no-store" });
-      if (!res.ok) throw new Error(res.status);
-      const d = await res.json();
-      state.data = d;
-      state.models = { "화성": hwModel(d, "화성"), "용인": hwModel(d, "용인") };
-      renderUpdated(d);
-      $("#tab-hw-n").textContent = `${d.facilities.filter((f) => f.city === "화성").length}`;
-      $("#tab-yi-n").textContent = `${d.facilities.filter((f) => f.city === "용인").length}`;
-      render();
-    } catch (e) {
-      $("#updated").textContent = "데이터를 불러오지 못했습니다. 잠시 후 새로고침하세요.";
-      $("#updated").classList.add("stale");
+    for (const url of DATA_URLS) {
+      try {
+        const res = await fetch(url + "?t=" + Date.now(), { cache: "no-store" });
+        if (!res.ok) throw new Error(res.status);
+        const d = await res.json();
+        if (!Array.isArray(d.facilities) || !Array.isArray(d.slots)) throw new Error("형식 오류");
+        state.data = d;
+        state.models = { "화성": hwModel(d, "화성"), "용인": hwModel(d, "용인") };
+        renderUpdated(d);
+        $("#tab-hw-n").textContent = `${d.facilities.filter((f) => f.city === "화성").length}`;
+        $("#tab-yi-n").textContent = `${d.facilities.filter((f) => f.city === "용인").length}`;
+        render();
+        return;
+      } catch (e) { /* 다음 주소로 */ }
     }
+    $("#updated").textContent = "데이터를 불러오지 못했습니다. 잠시 후 새로고침하세요.";
+    $("#updated").classList.add("stale");
   }
   load();
-  setInterval(load, 10 * 60 * 1000);   // 열어둔 화면도 10분마다 새 데이터 확인
+  setInterval(load, 5 * 60 * 1000);   // 열어둔 화면도 5분마다 새 데이터 확인
 })();
 </script>
 </body>
