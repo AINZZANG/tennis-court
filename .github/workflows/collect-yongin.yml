@@ -1,6 +1,6 @@
-name: 용인 수집 (20분마다)
+name: 용인 수집 (10분마다)
 
-# 실행 하나가 약 5시간 40분 동안 머물며 20분마다 수집하고, 끝날 때 다음 실행을 스스로 시작한다.
+# 실행 하나가 약 5시간 40분 동안 머물며 10분마다 수집하고, 끝날 때 다음 실행을 스스로 시작한다.
 # (GitHub 시간 예약은 늦거나 안 도는 경우가 많아서 보조로만 둔다)
 on:
   schedule:
@@ -37,15 +37,15 @@ jobs:
           restore-keys: |
             cache-yongin-
             collect-cache-
-      - name: 20분마다 수집해서 data 브랜치와 사이트에 올리기
+      - name: 10분마다 수집해서 data 브랜치와 사이트에 올리기
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
           YONGIN_INTERVAL: "1.5"        # 요청 간격(초)
-          YONGIN_SLOT_BUDGET: "700"     # 한 번에 보낼 수 있는 상한
-          YONGIN_TTL_NEAR_MIN: "18"     # 내일~3일 후·주말: 20분마다
-          YONGIN_TTL_FAR_MIN: "50"      # 그 외: 1시간마다 (꽉 찬 4일 이후는 3시간)
+          YONGIN_SLOT_BUDGET: "350"     # 한 회차 상한 (1.5초×350 ≈ 9분, 10분 안에 끝나도록)
+          YONGIN_TTL_NEAR_MIN: "9"      # 내일~3일 후·주말: 10분마다
+          YONGIN_TTL_FAR_MIN: "25"      # 그 외: 30분마다 (꽉 찬 4일 이후는 3시간)
         run: >
-          bash scripts/run_loop.sh 1200 20400
+          bash scripts/run_loop.sh 600 20400
           "python -m tennis.collect --days 14 --only yongin --out data/snapshot_yongin.json
           && bash scripts/publish_data.sh data/snapshot_yongin.json snapshot_yongin.json --pages"
       - name: 캐시 저장
