@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>화성·용인 빈 코트</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Inter:wght@300;400;500;600&display=swap">
+<style>
+/* 29cm/무신사 느낌: 흰 바탕 · 검정 단색 · 직각 · 헤어라인 구분선 · 넓은 자간의 영문 레이블 */
+:root {
+  --bg: #ffffff;
+  --fg: #111111;
+  --sub: #8e8e8e;
+  --faint: #bdbdbd;
+  --line: #e9e9e9;
+  --fill: #f6f6f6;
+  --ink: #111111;          /* 예약 가능 칩 바탕 */
+  --ink-fg: #ffffff;
+  --point: #e8452c;        /* 포인트는 아주 조금만 (주말·경고) */
+  --font-body: "Noto Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-num: "Inter", "Noto Sans KR", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0b0b; --fg: #f2f2f2; --sub: #8a8a8a; --faint: #5c5c5c; --line: #242424;
+    --fill: #161616; --ink: #f2f2f2; --ink-fg: #0b0b0b; --point: #ff6b54; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0b0b; --fg: #f2f2f2; --sub: #8a8a8a; --faint: #5c5c5c; --line: #242424;
+  --fill: #161616; --ink: #f2f2f2; --ink-fg: #0b0b0b; --point: #ff6b54; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 400 14px/1.6 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+.pad { padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 920px; margin: 0 auto; }
+a { color: inherit; }
+
+/* ── 상단 고정: 브랜드 바 + 도시 탭 ── */
+.sticky { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line); }
+.topbar { display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+          padding-top: calc(14px + env(safe-area-inset-top, 0px)); padding-bottom: 12px; }
+.brand { font: 600 .78rem/1 var(--font-num); letter-spacing: .22em; text-transform: uppercase; }
+.brand b { font-weight: 600; }
+.brand span { display: block; margin-top: 6px; font: 300 .72rem/1 var(--font-body); letter-spacing: .06em; color: var(--sub); }
+.stamp { font: 400 .68rem/1.5 var(--font-num); letter-spacing: .08em; color: var(--sub); text-align: right; max-width: 48%; }
+.stamp.stale, .stamp .late { color: var(--point); }
+
+.citynav { display: flex; gap: 22px; }
+.citytab { appearance: none; border: 0; background: none; color: var(--faint); cursor: pointer;
+           font: 500 1rem/1 var(--font-body); letter-spacing: -.01em; padding: 0 0 13px; position: relative; }
+.citytab em { font: 400 .68rem/1 var(--font-num); letter-spacing: .14em; font-style: normal; margin-left: 6px; }
+.citytab[aria-selected="true"] { color: var(--fg); }
+.citytab[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--fg); }
+
+/* ── 공통 레이블 ── */
+.eyebrow { font: 500 .66rem/1 var(--font-num); letter-spacing: .2em; text-transform: uppercase; color: var(--sub); margin: 0; }
+.rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
+section.block { padding-top: 26px; padding-bottom: 26px; }
+
+/* ── 달력 ── */
+.cal { margin-top: 12px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cal-month { font: 300 1.2rem/1 var(--font-num); letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.cal-range { margin-top: 7px; font: 400 .66rem/1 var(--font-num); letter-spacing: .14em; text-transform: uppercase; color: var(--sub); }
+.cal-nav { display: flex; gap: 5px; }
+.mo { appearance: none; background: none; border: 1px solid var(--line); color: var(--fg); cursor: pointer;
+      width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
+      font: 400 .95rem/1 var(--font-num); }
+.mo:not(:disabled):hover { border-color: var(--fg); }
+.mo:disabled { color: var(--faint); cursor: default; }
+.cal-wd { display: grid; grid-template-columns: repeat(7, 1fr); margin-top: 16px; padding-bottom: 9px;
+          border-bottom: 1px solid var(--fg); }
+.cal-wd span { text-align: center; font: 400 .62rem/1 var(--font-num); letter-spacing: .08em; color: var(--sub); }
+.cal-wd span:first-child { color: var(--point); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+.cell { appearance: none; background: none; border: 0; border-bottom: 1px solid var(--line); cursor: pointer;
+        color: var(--fg); padding: 9px 0 8px; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.cell .d { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 28px; padding: 0 4px;
+           font: 400 .9rem/1 var(--font-num); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.cell .c { font: 400 .62rem/1 var(--font-num); color: var(--sub); min-height: 8px; font-variant-numeric: tabular-nums; }
+.cell .c.z { color: var(--faint); }
+.cell.sun .d { color: var(--point); }
+.cell.today .d { box-shadow: inset 0 0 0 1px var(--fg); }
+.cell[aria-pressed="true"] .d { background: var(--ink); color: var(--ink-fg); box-shadow: none; }
+.cell[aria-pressed="true"] .c { color: var(--fg); }
+.cell.off, .cell.pad { cursor: default; }
+.cell.off .d { color: var(--faint); }
+.cell.off .c { visibility: hidden; }
+/* ── 모든 날짜 모드 ── */
+.chip.cal-all { padding: 8px 12px; font-size: .74rem; }
+.dayblk { border-top: 1px solid var(--fg); padding: 15px 0 18px; }
+.dayblk-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.db-d { font: 300 1.35rem/1 var(--font-num); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.db-w { font: 400 .8rem/1 var(--font-body); color: var(--sub); margin-left: 7px; }
+.db-w.we { color: var(--point); }
+.db-n { font: 400 .68rem/1 var(--font-num); letter-spacing: .1em; text-transform: uppercase; color: var(--sub); }
+.arow { display: grid; grid-template-columns: 140px 1fr; gap: 12px; align-items: start;
+        padding: 9px 0; border-top: 1px solid var(--line); }
+.aname { min-width: 0; font: 400 .82rem/1.4 var(--font-body); letter-spacing: -.01em; }
+.ameta { display: block; font: 400 .68rem/1.5 var(--font-body); color: var(--sub); }
+.slot sup { font-size: .6em; margin-left: 2px; opacity: .75; }
+
+/* ── 위치 지도 (행정경계 SVG, 외부 타일 없음) ── */
+.map-wrap { padding-bottom: 14px; }
+.map { display: block; width: 100%; height: auto; max-height: 380px; background: var(--bg); }
+.mcity { fill: none; stroke: var(--line); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.mcity.on { fill: var(--fill); stroke: var(--sub); }
+.mlabel { fill: var(--faint); font: 500 22px/1 var(--font-body); letter-spacing: 3px; pointer-events: none; }
+.dot { cursor: pointer; }
+.dot rect, .dot circle { fill: var(--bg); stroke: var(--sub); stroke-width: 1.3; vector-effect: non-scaling-stroke; }
+.dot.has rect, .dot.has circle { fill: var(--ink); stroke: var(--ink); }
+.dot:hover rect, .dot:hover circle { stroke: var(--fg); stroke-width: 2; }
+.dot.sel rect, .dot.sel circle { fill: var(--fg); stroke: var(--fg); stroke-width: 7; stroke-opacity: .22; }
+.map-legend { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 10px;
+              font: 400 .68rem/1.5 var(--font-body); color: var(--faint); }
+.map-legend i { display: inline-block; width: 9px; height: 9px; background: var(--ink); margin-right: 5px; vertical-align: -1px; }
+.map-legend i.r { border-radius: 50%; }
+.map-legend i.o { background: var(--bg); box-shadow: inset 0 0 0 1px var(--sub); }
+.map-info { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;
+            margin-top: 12px; padding-top: 13px; border-top: 1px solid var(--line); }
+.mi-name { font: 500 .92rem/1.3 var(--font-body); letter-spacing: -.01em; }
+.mi-meta { margin-top: 3px; font: 400 .74rem/1.6 var(--font-body); color: var(--sub); }
+.mi-links { display: flex; gap: 6px; margin-left: auto; }
+.mi-btn { background: var(--ink); color: var(--ink-fg); text-decoration: none; padding: 9px 12px;
+          font: 400 .74rem/1 var(--font-body); white-space: nowrap; }
+.mi-btn.ghost { background: var(--bg); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); }
+.cal-cap { margin: 11px 0 0; font: 400 .68rem/1.5 var(--font-body); color: var(--faint); }
+
+/* ── 필터 ── */
+.filters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 18px; }
+.chip { appearance: none; border: 1px solid var(--line); background: none; color: var(--sub); cursor: pointer;
+        font: 400 .78rem/1 var(--font-body); padding: 9px 14px; letter-spacing: -.01em; }
+.chip[aria-pressed="true"] { border-color: var(--fg); color: var(--fg); background: var(--fill); }
+.chip:disabled { opacity: .45; cursor: default; }
+.bandgrid { display: grid; grid-template-columns: auto 1fr; gap: 9px 11px; align-items: center; margin-top: 12px; }
+.bandlbl { font: 400 .72rem/1.3 var(--font-body); letter-spacing: -.01em; color: var(--fg); white-space: nowrap; }
+.bandlbl small { display: block; font: 400 .6rem/1 var(--font-num); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin-top: 3px; }
+.bandrow { display: flex; flex-wrap: wrap; gap: 6px; }
+.bandrow.off, .bandgrid .bandlbl.off { opacity: .4; }
+
+/* ── 테니스장 선택기 ── */
+.pick { margin-top: 12px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.pick-btn { appearance: none; background: none; border: 0; width: 100%; display: flex; align-items: center; gap: 8px;
+            padding: 14px 0; cursor: pointer; color: var(--fg); text-align: left;
+            font: 400 .82rem/1 var(--font-body); letter-spacing: -.01em; }
+.pick-btn em { font: 400 .7rem/1 var(--font-num); font-style: normal; letter-spacing: .06em; color: var(--sub); }
+.pick-btn .caret { margin-left: auto; font: 300 1.05rem/1 var(--font-num); color: var(--sub); }
+.pick-hd { display: flex; align-items: center; gap: 8px; padding: 14px 0;
+           font: 400 .82rem/1 var(--font-body); letter-spacing: -.01em; }
+.pick-hd em { margin-left: auto; font: 400 .7rem/1 var(--font-num); font-style: normal; letter-spacing: .06em; color: var(--sub); }
+.pick-body { padding-bottom: 12px; }
+.pick-acts { display: flex; gap: 6px; padding-bottom: 12px; }
+.pick-acts .chip { padding: 7px 12px; font-size: .72rem; }
+.pick-row { appearance: none; background: none; border: 0; border-top: 1px solid var(--line); width: 100%;
+            display: flex; align-items: center; gap: 10px; padding: 11px 0; cursor: pointer; text-align: left;
+            color: var(--faint); font: 400 .85rem/1.3 var(--font-body); letter-spacing: -.01em; }
+.pick-row .box { flex: 0 0 auto; position: relative; width: 15px; height: 15px; border: 1px solid var(--faint); }
+.pick-row .pick-name { flex: 1 1 auto; min-width: 0; }
+.pick-row .pick-meta { flex: 0 0 auto; font: 400 .7rem/1 var(--font-num); letter-spacing: .02em; color: var(--faint); }
+.pick-group { padding: 13px 0 6px; font: 400 .66rem/1 var(--font-body); letter-spacing: .06em; color: var(--sub); }
+.pick-group:first-child { padding-top: 2px; }
+.pick-row[aria-pressed="true"] { color: var(--fg); }
+.pick-row[aria-pressed="true"] .pick-meta { color: var(--sub); }
+.pick-row[aria-pressed="true"] .box { background: var(--ink); border-color: var(--ink); }
+.pick-row[aria-pressed="true"] .box::after { content: ""; position: absolute; left: 2.5px; top: 4px; width: 8px; height: 4px;
+            border-left: 1.5px solid var(--ink-fg); border-bottom: 1.5px solid var(--ink-fg); transform: rotate(-45deg); }
+
+/* ── 요약 ── */
+.summary { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-top: 26px; }
+.summary h1 { margin: 6px 0 0; font: 300 1.5rem/1.3 var(--font-body); letter-spacing: -.02em; text-wrap: balance; }
+.summary h1 b { font-weight: 500; }
+.bignum { font: 300 2.9rem/0.9 var(--font-num); letter-spacing: -.04em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bignum i { font: 400 .72rem/1 var(--font-num); font-style: normal; letter-spacing: .14em; text-transform: uppercase; color: var(--sub); margin-left: 6px; }
+
+/* ── 범례 / 안내 ── */
+.legend { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 20px;
+          font: 400 .72rem/1 var(--font-body); color: var(--sub); }
+.legend .slot { pointer-events: none; }
+.note { margin-top: 18px; padding: 14px 16px; background: var(--fill); font-size: .8rem; color: var(--sub); line-height: 1.65; }
+
+/* ── 시설 리스트 ── */
+.list { margin-top: 10px; }
+.fac { border-top: 1px solid var(--line); padding: 22px 0; display: grid; gap: 14px; min-width: 0; }
+.fac:last-child { border-bottom: 1px solid var(--line); }
+.fac-head { display: grid; grid-template-columns: 30px 1fr auto; gap: 12px; align-items: start; }
+.idx { font: 400 .7rem/1.7 var(--font-num); letter-spacing: .08em; color: var(--faint); }
+.fac-name { font: 500 1.05rem/1.4 var(--font-body); letter-spacing: -.02em; }
+.fac-meta { margin-top: 3px; font: 400 .75rem/1.6 var(--font-body); color: var(--sub); }
+.cnt { text-align: right; font: 300 1.5rem/1.2 var(--font-num); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.cnt small { display: block; font: 400 .62rem/1 var(--font-num); letter-spacing: .14em; text-transform: uppercase; color: var(--sub); margin-top: 4px; }
+.cnt.zero { color: var(--faint); }
+.court { display: grid; grid-template-columns: 30px 72px 1fr; gap: 12px; align-items: start; }
+.court-name { grid-column: 2; font: 400 .72rem/1.9 var(--font-num); letter-spacing: .06em; color: var(--sub); }
+.slots { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.slot { font: 400 .74rem/1 var(--font-num); letter-spacing: .02em; font-variant-numeric: tabular-nums;
+        padding: 7px 8px; border: 1px solid transparent; text-decoration: none; display: inline-block; }
+.slot.a { background: var(--ink); color: var(--ink-fg); border-color: var(--ink); }
+.slot.a:hover, .slot.a:focus-visible { background: var(--bg); color: var(--fg); border-color: var(--fg); }
+.slot.b { background: var(--fill); color: var(--faint); text-decoration: line-through; }
+.slot.c { color: var(--faint); border-color: var(--line); }
+.slot.today { color: var(--fg); border-color: var(--fg); background: var(--bg); }
+.slot.p { color: var(--sub); border: 1px dashed var(--sub); background: var(--bg); }
+.prenote { font: 400 .72rem/1.5 var(--font-body); color: var(--sub); padding: 8px 10px; background: var(--fill); }
+.cell .c.pre { color: var(--sub); border-bottom: 1px dashed var(--faint); }
+.none { grid-column: 1 / -1; font-size: .78rem; color: var(--faint); }
+.court-name small { display: block; font: 400 .6rem/1.3 var(--font-num); letter-spacing: .02em; color: var(--faint); }
+.closed { font: 400 .74rem/1.9 var(--font-body); color: var(--faint); }
+
+/* ── 용인: 접수 상태 ── */
+.tag { display: inline-block; font: 400 .68rem/1 var(--font-body); padding: 5px 8px; letter-spacing: -.01em; white-space: nowrap; }
+.tag.open { background: var(--ink); color: var(--ink-fg); }
+.tag.wait { border: 1px solid var(--fg); color: var(--fg); }
+.tag.done { background: var(--fill); color: var(--faint); }
+.kv { display: grid; grid-template-columns: 30px 64px 1fr; gap: 0; margin: 0; font-size: .8rem; }
+.kv dt { grid-column: 2; padding: 9px 0; border-top: 1px solid var(--line); color: var(--sub);
+         font: 400 .74rem/1.6 var(--font-num); letter-spacing: .04em; }
+.kv dd { grid-column: 3; margin: 0; padding: 9px 0; border-top: 1px solid var(--line); min-width: 0; overflow-wrap: anywhere; }
+.kv dd .fac-meta { margin-top: 2px; }
+.btn { display: block; text-align: center; background: var(--ink); color: var(--ink-fg); text-decoration: none;
+       padding: 15px 16px; font: 500 .82rem/1 var(--font-body); letter-spacing: .02em; }
+.btn:hover, .btn:focus-visible { background: var(--bg); color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+.btn-row { grid-column: 1 / -1; }
+
+.empty { padding: 64px 0; text-align: center; color: var(--faint); font-size: .85rem; border-top: 1px solid var(--line); }
+footer { border-top: 1px solid var(--line); margin-top: 20px; padding: 26px 0 calc(40px + env(safe-area-inset-bottom, 0px));
+         font: 400 .7rem/1.8 var(--font-body); color: var(--faint); letter-spacing: .01em; }
+footer b { display: block; font: 500 .66rem/1 var(--font-num); letter-spacing: .2em; text-transform: uppercase; color: var(--sub); margin-bottom: 8px; }
+.credit { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+.credit span { font: 400 .82rem/1.4 var(--font-body); letter-spacing: -.01em; color: var(--fg); }
+.credit span em { font-style: normal; color: var(--sub); margin-right: 7px; }
+
+:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+@media (max-width: 480px) {
+  .arow { grid-template-columns: 1fr; gap: 5px; }
+  .fac-head { grid-template-columns: 22px 1fr auto; gap: 10px; }
+  .court { grid-template-columns: 22px 1fr; }
+  .court-name { grid-column: 2; }
+  .slots { grid-column: 2; }
+  .kv { grid-template-columns: 22px 58px 1fr; }
+  .bignum { font-size: 2.3rem; }
+  .summary h1 { font-size: 1.25rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+
+<div class="sticky">
+  <div class="wrap pad">
+    <div class="topbar">
+      <div class="brand"><b>Empty Court</b><span>화성 · 용인 공공 테니스장</span></div>
+      <div class="stamp" id="updated">LOADING…</div>
+    </div>
+    <nav class="citynav" role="tablist">
+      <button class="citytab" role="tab" id="tab-hw" aria-selected="true" data-city="화성">화성 <em id="tab-hw-n"></em></button>
+      <button class="citytab" role="tab" id="tab-yi" aria-selected="false" data-city="용인">용인 <em id="tab-yi-n"></em></button>
+    </nav>
+  </div>
+</div>
+
+<main class="wrap pad">
+
+  <section id="view-hw" class="block">
+    <p class="eyebrow">Select date</p>
+    <div class="cal" id="days" role="group" aria-label="날짜 선택"></div>
+
+    <p class="eyebrow" style="margin-top:24px">Time filter</p>
+    <div class="bandgrid" id="filters">
+      <div class="bandlbl" id="lbl-wd">평일<small>Mon–Fri</small></div>
+      <div class="bandrow" id="row-wd" aria-label="평일 시간대">
+        <button class="chip" aria-pressed="true" data-wd="all">전체</button>
+        <button class="chip" aria-pressed="false" data-wd="am">오전</button>
+        <button class="chip" aria-pressed="false" data-wd="pm">오후</button>
+        <button class="chip" aria-pressed="false" data-wd="ev">저녁</button>
+      </div>
+      <div class="bandlbl" id="lbl-hol">주말·공휴일<small>Sat·Sun·Holiday</small></div>
+      <div class="bandrow" id="row-hol" aria-label="주말·공휴일 시간대">
+        <button class="chip" aria-pressed="true" data-hol="all">전체</button>
+        <button class="chip" aria-pressed="false" data-hol="am">오전</button>
+        <button class="chip" aria-pressed="false" data-hol="pm">오후</button>
+        <button class="chip" aria-pressed="false" data-hol="ev">저녁</button>
+      </div>
+    </div>
+    <div class="filters">
+      <button class="chip" aria-pressed="false" data-only="1" id="only-open">빈 시간만</button>
+    </div>
+
+    <div class="pick" id="pick-hw"></div>
+
+    <div class="summary">
+      <div>
+        <p class="eyebrow">Available</p>
+        <h1 id="hw-title">—</h1>
+      </div>
+      <div class="bignum" id="hw-count">—<i>칸</i></div>
+    </div>
+
+    <div class="legend">
+      <span><span class="slot a">08:00</span> 예약 가능 — 누르면 예약 페이지</span>
+      <span><span class="slot b">08:00</span> 예약됨</span>
+      <span><span class="slot c">08:00</span> 운영 안 함</span>
+      <span><span class="slot p">08:00</span> 비어 있지만 접수 시작 전</span>
+    </div>
+
+    <div class="note" id="today-note" hidden>이용일 하루 전에 예약을 마감합니다. 오늘 비어 있는 시간은 참고용입니다.</div>
+    <div class="note" id="yi-note" hidden>용인 사이트는 요청이 몰리면 접속을 막기 때문에 코트를 천천히 돌아가며 확인합니다. 코트를 나눠 돌아가며 확인하기 때문에 코트마다 확인 시각이 조금씩 다릅니다 — 코트 이름 아래에 확인한 시각을 적어 둡니다. 예약 직전에 예약 페이지에서 한 번 더 확인하세요.</div>
+
+    <div class="list" id="hw-list"></div>
+
+    <div class="pick" id="mapbox">
+      <button class="pick-btn" data-mapt="1" aria-expanded="true" aria-controls="map-wrap">지도에서 위치 보기 <em id="map-note"></em><span class="caret" id="map-caret" aria-hidden="true">−</span></button>
+      <div class="map-wrap" id="map-wrap"></div>
+    </div>
+  </section>
+
+  <section id="view-yi" class="block" hidden>
+    <p class="eyebrow">Booking schedule</p>
+    <div class="note" style="margin-top:10px">코트별 접수 상태와 예약 오픈 일정입니다. 구민·시민 우선예약 기간에는 해당 주민만 신청할 수 있습니다.</div>
+    <div class="filters" id="gu-filters"></div>
+    <div class="pick" id="pick-yi"></div>
+    <div class="list" id="yi-list"></div>
+  </section>
+
+  <footer>
+    <b>Source</b>
+    화성도시공사 통합예약 · 용인시 공공시설 예약 데이터를 자동 수집합니다 — 화성 5분, 용인 20분 간격.<br>
+    실제 예약 가능 여부는 각 예약 페이지에서 최종 확인하세요.
+    <div class="credit">
+      <b>Made by</b>
+      <span><em>제작자</em>김아인</span>
+    </div>
+  </footer>
+</main>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const WD = ["일", "월", "화", "수", "목", "금", "토"];
+  const WD_EN = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  const state = { city: "화성", day: null, month: null, bandWd: "all", bandHol: "all", onlyOpen: false, gu: "전체",
+                hidden: new Set(), vis: null, mapOpen: true, mapSel: null, allDays: false, data: null };
+
+  try {
+    const saved = JSON.parse(localStorage.getItem("tennis-prefs") || "{}");
+    if (saved.city) state.city = saved.city;
+    if (saved.band) { state.bandWd = saved.band; state.bandHol = saved.band; }   // 이전 버전 설정 이어받기
+    if (saved.bandWd) state.bandWd = saved.bandWd;
+    if (saved.bandHol) state.bandHol = saved.bandHol;
+    if (typeof saved.onlyOpen === "boolean") state.onlyOpen = saved.onlyOpen;
+    if (Array.isArray(saved.hidden)) state.hidden = new Set(saved.hidden);
+    if (typeof saved.mapOpen === "boolean") state.mapOpen = saved.mapOpen;
+    if (typeof saved.allDays === "boolean") state.allDays = saved.allDays;
+  } catch (e) { /* 저장소 없음 */ }
+  const savePrefs = () => {
+    try {
+      localStorage.setItem("tennis-prefs", JSON.stringify({ city: state.city, bandWd: state.bandWd, bandHol: state.bandHol,
+        onlyOpen: state.onlyOpen, hidden: [...state.hidden], mapOpen: state.mapOpen, allDays: state.allDays }));
+    } catch (e) {}
+  };
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const pad = (n) => String(n).padStart(2, "0");
+  const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+  // 공휴일 (토·일은 자동으로 휴일 처리). 임시공휴일·선거일이 생기면 여기에 추가한다.
+  // 출처: 한국천문연구원 월력요항 기준 2026~2027년 공휴일. 2028년분은 매년 초에 보완 필요.
+  const HOLIDAYS = new Set([
+    "2026-12-25",
+    "2027-01-01", "2027-02-06", "2027-02-07", "2027-02-08", "2027-02-09",
+    "2027-03-01", "2027-05-05", "2027-05-13", "2027-06-06",
+    "2027-08-15", "2027-08-16", "2027-09-14", "2027-09-15", "2027-09-16",
+    "2027-10-03", "2027-10-04", "2027-10-09", "2027-10-11", "2027-12-25", "2027-12-27",
+  ]);
+  const isHoliday = (iso) => {
+    const w = new Date(iso + "T00:00:00").getDay();
+    return w === 0 || w === 6 || HOLIDAYS.has(iso);
+  };
+  // 그 날짜가 든 달의 '일반예약' 접수 시작일 (용인). 없으면 빈 문자열
+  const openDateFor = (f, iso) => {
+    for (const it of f.extra.items || []) {
+      if (it.kind !== "일반예약") continue;
+      if ((it.use_period || "").slice(0, 7) !== iso.slice(0, 7)) continue;
+      const s = (it.accept_period || "").split("~")[0].trim();
+      if (s) return s;
+    }
+    return "";
+  };
+  const openLabel = (f, iso) => {
+    const s = openDateFor(f, iso);
+    return s ? `${+s.slice(5, 7)}월 ${+s.slice(8, 10)}일` : "";
+  };
+
+  const bandFor = (iso) => (isHoliday(iso) ? state.bandHol : state.bandWd);
+  const BAND_TXT = { all: "하루 전체", am: "오전", pm: "오후", ev: "저녁" };
+
+  const inBand = (start, band) => {
+    const h = parseInt(start, 10);
+    if (band === "am") return h < 12;
+    if (band === "pm") return h >= 12 && h < 18;
+    if (band === "ev") return h >= 18;
+    return true;
+  };
+
+  // 숨긴 테니스장을 뺀, 보이는 코트 번호 모음
+  function visibleCourts() {
+    const vis = new Set();
+    state.data.courts.forEach(([fi], ci) => {
+      if (!state.hidden.has(state.data.facilities[fi].id)) vis.add(ci);
+    });
+    return vis;
+  }
+
+  function cityFacilities(city) {
+    const facs = state.data.facilities.filter((f) => f.city === city);
+    facs.sort((a, b) => (a.district || "").localeCompare(b.district || "", "ko") || a.name.localeCompare(b.name, "ko"));
+    return facs;
+  }
+
+  // 자주 가는 곳 — 선택 목록 맨 위로 올라간다. 순서를 바꾸려면 이 배열만 고치면 된다.
+  const FAVORITES = [
+    "hwaseong:금반저류지 테니스장",
+    "hwaseong:돌모루 근린공원 테니스장",
+    "hwaseong:여울공원 테니스장",
+    "hwaseong:왕배산체육공원 테니스장",
+    "hwaseong:중동 테니스장",
+  ];
+  const favRank = (id) => {
+    const i = FAVORITES.indexOf(id);
+    return i < 0 ? 1e9 : i;
+  };
+
+  function renderPick(city) {
+    const el = city === "화성" ? $("#pick-hw") : $("#pick-yi");
+    const facs = cityFacilities(city);
+    const on = facs.filter((f) => !state.hidden.has(f.id)).length;
+    const row = (f) => {
+      const sel = !state.hidden.has(f.id);
+      const meta = city === "용인"
+        ? `${esc(f.district)} · ${f.courts || "?"}면`
+        : `${f.courts}면 · ${esc(f.extra.fee || "")}`;
+      return `<button class="pick-row" data-fac="${esc(f.id)}" aria-pressed="${sel}">
+        <span class="box" aria-hidden="true"></span>
+        <span class="pick-name">${esc(f.name)}</span>
+        <span class="pick-meta">${meta}</span></button>`;
+    };
+    const favs = facs.filter((f) => favRank(f.id) < 1e9).sort((a, b) => favRank(a.id) - favRank(b.id));
+    const rest = facs.filter((f) => favRank(f.id) === 1e9);
+    const rows = favs.length
+      ? `<div class="pick-group">자주 가는 곳</div>${favs.map(row).join("")}`
+        + `<div class="pick-group">그 외</div>${rest.map(row).join("")}`
+      : rest.map(row).join("");
+    el.innerHTML = `<div class="pick-hd">테니스장 선택 <em>${on} / ${facs.length}곳 표시</em></div>
+      <div class="pick-body" id="pick-body-${city}">
+        <div class="pick-acts">
+          <button class="chip" data-pickall="${city}">전체 선택</button>
+          <button class="chip" data-picknone="${city}">전체 해제</button>
+        </div>${rows}
+      </div>`;
+  }
+
+  // 화성시·용인시(수지/기흥/처인) 행정경계 — 국가통계 경계자료를 약 100m로 단순화한 SVG 경로
+  const GEO = {"vb":"0 0 1000 506","p":[126.537451,37.3696,1117.932,1403.306],"hs":"M409 114L414 116L421 115L423 114L427 122L434 128L436 128L440 134L438 142L440 153L442 156L444 156L447 162L460 161L464 164L464 166L466 170L467 174L470 176L472 182L472 186L482 192L486 201L490 202L493 199L495 200L497 197L502 199L503 197L506 195L512 199L526 201L529 203L542 206L544 208L546 204L545 200L547 198L552 199L553 196L558 191L561 190L560 185L565 181L565 175L567 176L563 190L569 194L570 196L577 194L579 195L578 198L585 194L587 190L590 187L594 186L596 189L595 193L598 202L603 202L603 204L607 209L619 219L624 218L624 216L636 214L648 215L651 214L661 217L667 217L672 220L681 216L689 216L689 216L689 222L696 232L694 233L694 237L691 241L690 245L699 254L699 262L697 265L699 270L697 273L693 275L689 282L685 285L668 285L669 291L662 297L665 302L662 307L664 307L665 310L662 319L653 320L652 321L647 320L643 321L643 323L640 322L636 323L635 319L632 318L630 310L628 309L629 304L626 304L626 301L625 301L625 299L609 297L602 293L602 289L599 287L598 280L601 277L600 266L599 264L593 264L592 261L596 255L593 253L594 249L591 244L587 242L583 246L578 246L575 248L563 244L561 242L553 242L549 241L546 245L532 251L528 260L522 267L525 268L524 270L520 273L516 272L514 274L514 277L520 279L527 287L541 288L551 294L550 297L553 300L554 304L551 307L553 313L553 319L557 329L559 331L552 335L547 336L539 340L525 343L522 348L517 350L519 351L522 349L515 371L518 375L516 378L518 382L516 386L518 393L512 397L510 404L514 424L506 424L502 422L492 424L485 420L482 426L476 425L467 428L464 427L461 430L458 431L457 434L453 437L443 435L441 429L440 427L432 431L424 430L422 429L422 424L421 426L414 425L413 422L414 420L413 419L405 426L390 429L387 441L355 495L348 500L338 504L292 506L292 500L290 497L290 486L284 482L241 482L239 480L234 472L234 468L238 454L247 444L261 438L262 433L254 435L253 427L256 426L254 410L256 408L257 403L256 401L256 399L259 395L258 390L260 389L263 380L262 377L261 378L258 377L257 374L249 367L251 359L261 343L267 343L269 337L277 333L281 336L282 341L290 342L291 334L297 328L303 328L307 326L309 327L313 322L304 320L301 310L296 307L287 311L286 313L275 309L280 305L290 301L293 295L297 294L292 291L292 282L287 280L288 275L292 270L293 256L291 268L283 279L271 292L258 292L250 291L243 289L238 289L236 290L236 298L231 308L226 313L219 313L220 317L215 328L209 331L206 337L199 341L197 339L191 339L187 344L186 348L171 360L170 365L165 366L161 361L159 361L165 360L166 356L164 342L159 333L157 332L155 334L154 330L161 325L161 321L166 313L170 313L178 309L174 302L166 299L172 287L166 294L165 298L151 304L144 303L138 307L134 308L129 307L127 306L128 303L132 302L137 299L140 295L133 277L136 275L135 274L132 271L132 269L135 269L138 272L140 273L145 265L146 261L144 260L146 257L150 257L145 253L137 256L133 262L134 263L133 265L133 266L129 266L127 265L130 261L129 260L129 259L131 260L134 257L134 255L129 254L130 254L136 255L140 247L142 247L152 250L150 247L159 245L166 240L175 238L178 229L183 223L175 222L173 224L171 231L167 230L166 229L161 232L160 236L159 238L158 241L155 242L153 242L150 237L149 232L146 230L145 225L148 221L146 218L147 217L150 217L152 213L157 212L159 209L154 203L154 200L150 199L149 201L147 200L147 197L145 195L144 190L141 188L136 189L137 192L134 193L130 188L127 175L124 175L128 173L128 166L131 171L131 173L135 175L134 176L142 178L144 179L147 178L148 181L149 182L155 180L158 177L162 163L157 161L158 157L161 157L161 161L163 162L167 159L169 154L186 156L189 160L195 160L203 163L213 160L215 166L217 166L222 171L230 165L231 166L234 164L236 166L239 164L248 165L255 168L260 174L265 173L268 175L271 189L275 194L281 196L279 194L277 194L272 187L271 177L284 180L283 177L284 175L283 165L288 159L285 148L287 145L290 145L292 142L308 148L307 146L305 146L300 135L295 131L297 130L301 122L306 119L308 120L309 122L307 124L306 127L308 129L319 136L323 140L326 140L326 142L328 142L331 138L339 143L343 149L345 148L349 150L355 141L361 138L376 137L382 133L383 131L384 124L385 122L390 127L394 129L398 126L398 124L400 120L407 115L406 110ZM97 271L98 272L98 273L100 274L98 275L108 278L106 280L103 288L95 296L93 302L93 299L88 305L92 298L91 277L93 273ZM225 393L231 407L232 415L218 421L220 414L224 406L224 394L223 393ZM152 139L148 138L147 136L154 128L162 124L164 127L169 127L166 129L162 138ZM2 365L6 366L7 375L7 378L4 385L5 390L3 390L3 388L4 385L2 379L3 375L2 373ZM230 119L235 118L235 125L231 125L229 127L226 125L222 126L223 121L225 118L228 117ZM258 156L258 159L253 157L257 155Z","su":"M551 0L571 6L572 8L579 12L579 16L580 17L588 16L598 20L602 24L604 29L606 33L613 29L616 29L619 34L625 36L628 41L633 41L636 47L643 53L646 52L650 55L654 53L657 50L674 46L678 51L677 61L679 65L676 68L671 67L662 76L659 74L659 72L646 72L644 68L637 68L630 71L628 73L634 73L632 75L631 83L625 83L626 84L623 85L622 89L624 91L624 96L622 98L623 99L622 100L619 105L615 104L614 106L612 105L610 108L607 109L607 111L587 106L588 96L584 95L587 90L587 86L584 83L584 80L575 79L565 73L561 65L562 62L561 60L558 54L555 50L555 42L557 39L540 29L538 26L537 22L539 19L546 12L550 5Z","gi":"M620 104L622 100L623 99L622 98L624 96L624 91L622 89L623 85L626 84L625 83L631 83L632 75L634 73L628 73L630 71L637 68L644 68L646 72L659 72L659 74L662 76L672 67L673 73L679 77L680 83L685 89L686 93L689 93L691 95L702 96L707 99L708 102L710 102L712 109L710 113L714 116L716 122L717 123L717 127L712 144L714 157L715 160L709 165L698 166L696 175L691 181L688 182L687 184L687 191L692 197L694 203L691 207L691 209L687 212L689 216L681 216L672 220L667 217L661 217L651 214L648 215L636 214L624 216L624 218L619 219L607 209L603 204L603 202L598 202L596 200L597 198L595 193L596 190L593 185L593 180L597 177L610 174L612 172L611 166L614 163L613 160L610 160L610 157L616 151L615 143L610 147L606 148L606 149L604 149L606 153L605 156L604 156L603 149L598 148L595 144L592 142L595 137L596 132L606 126L610 125L614 121L619 120L618 111L622 111Z","ci":"M765 25L771 24L776 19L782 20L786 17L788 26L790 27L796 24L803 31L812 34L816 42L827 41L833 37L836 38L836 50L834 53L832 59L833 62L835 63L834 69L836 75L829 89L834 105L830 115L834 132L828 136L828 139L834 146L845 141L853 144L856 150L857 149L858 144L859 142L867 139L874 139L876 137L889 143L896 142L898 143L901 150L900 154L896 156L896 159L894 162L898 168L892 173L891 175L892 178L890 181L894 188L892 196L893 198L892 203L890 205L891 207L888 212L889 213L898 219L899 226L902 231L905 231L909 236L917 238L918 241L928 240L934 236L942 248L940 252L940 255L935 256L936 259L943 261L946 259L947 266L961 269L964 268L969 270L977 264L979 265L980 270L981 273L981 277L982 279L981 283L981 284L979 288L979 290L977 292L978 297L981 302L980 305L983 309L986 310L994 309L1000 315L997 317L996 322L995 325L997 329L995 332L995 335L994 339L992 340L990 346L986 347L986 350L983 350L981 355L982 360L989 360L995 364L992 367L994 369L990 373L994 383L992 386L985 388L985 392L969 391L964 387L963 383L963 380L961 378L959 373L954 371L952 371L951 374L943 375L943 378L941 381L938 379L936 374L921 372L916 377L916 382L914 382L908 377L903 377L899 369L892 366L888 356L885 355L873 369L869 369L867 375L861 372L859 366L855 365L854 359L852 357L852 354L847 350L846 345L843 343L841 338L839 337L837 339L835 335L827 335L825 333L823 325L825 322L819 313L821 310L820 306L814 304L811 309L805 310L803 316L799 319L803 329L800 334L803 342L800 350L783 352L781 358L776 358L772 363L769 364L765 363L757 368L753 365L753 368L754 372L754 375L751 378L747 379L740 388L740 393L738 398L735 400L731 401L728 404L723 400L720 400L717 400L713 402L705 401L691 395L683 394L678 399L673 398L671 394L669 393L660 395L657 394L645 363L642 358L641 345L648 340L652 342L654 341L654 334L656 328L654 327L655 324L657 321L657 319L662 319L662 316L664 314L665 310L664 307L662 307L665 302L662 297L669 291L668 285L685 285L689 282L693 275L697 273L699 270L697 265L699 262L699 254L690 245L691 241L694 237L694 233L696 232L689 222L689 216L687 212L691 209L691 207L694 203L692 197L687 191L686 185L688 182L690 181L696 175L698 166L709 165L711 162L715 160L714 157L712 144L717 123L714 116L710 113L712 109L710 102L708 102L707 99L702 96L691 95L689 93L686 93L685 89L680 83L679 77L673 73L673 67L676 68L679 65L677 61L678 51L685 49L689 45L697 44L701 41L707 41L714 39L718 39L719 41L734 35L741 43L740 53L744 61L752 58L756 49L761 47L762 44L764 37L766 36L769 37L767 32L763 27L762 25L764 24Z"};
+  // 시설 좌표 폴백표: 화성 10곳은 예약 사이트(yeyak.hscity.go.kr) 공식 좌표, 용인은 OSM 코트·공원·행정동 지오코딩 기준.
+  // [위도, 경도, 1=대략적 위치(공원·동·읍 기준)] · 수집 데이터에 좌표가 생기면 그 값을 먼저 쓴다.
+  const COORD = {
+    "hwaseong:경기화성바이오밸리(마도) 테니스장": [37.169738, 126.771094, 0],
+    "hwaseong:금반저류지 테니스장": [37.184715, 127.082256, 0],
+    "hwaseong:도원체육공원 테니스장": [37.133541, 126.928702, 0],
+    "hwaseong:돌모루 근린공원 테니스장": [37.2235, 127.0768, 0],
+    "hwaseong:매송안보테마공원 테니스장": [37.2534, 126.9204, 0],
+    "hwaseong:비봉체육공원 테니스장": [37.263579, 126.845375, 0],
+    "hwaseong:여울공원 테니스장": [37.195716, 127.08481, 0],
+    "hwaseong:오음공원 테니스장": [37.110979, 126.906957, 0],
+    "hwaseong:왕배산체육공원 테니스장": [37.19955, 126.831759, 0],
+    "hwaseong:중동 테니스장": [37.219371, 127.118697, 0],
+    "yongin:공세동 테니스장": [37.24062, 127.11373, 0],
+    "yongin:기흥 테니스장": [37.27551, 127.11601, 1],
+    "yongin:남사 테니스장": [37.11348, 127.15037, 1],
+    "yongin:남산근린공원 테니스장": [37.23578, 127.07226, 0],
+    "yongin:동백산오름 테니스장": [37.28576, 127.15942, 1],
+    "yongin:둔전 테니스장": [37.2662, 127.21464, 0],
+    "yongin:모현레스피아 테니스장": [37.34568, 127.2474, 0],
+    "yongin:백암 테니스장": [37.16538, 127.37406, 1],
+    "yongin:성복배수지 테니스장": [37.3182, 127.0802, 0],
+    "yongin:수지체육공원 테니스장": [37.32927, 127.09745, 0],
+    "yongin:시립실외 테니스장": [37.22409, 127.20124, 1],
+    "yongin:신봉고가하부 테니스장": [37.32947, 127.06648, 1],
+    "yongin:신역동 테니스장": [37.28815, 127.10147, 1],
+    "yongin:아르피아 테니스장": [37.32859, 127.10467, 0],
+    "yongin:양지근린공원 테니스장": [37.2358, 127.28812, 0],
+    "yongin:용인시립골드 테니스장": [37.23148, 127.11553, 1],
+    "yongin:원삼 테니스장": [37.16477, 127.31045, 1],
+    "yongin:원삼면 체육시설 테니스장": [37.16651, 127.31338, 1],
+    "yongin:포곡 테니스장": [37.27894, 127.20781, 1],
+    "yongin:포곡대교하부 테니스장": [37.27798, 127.21949, 1],
+  };
+  const projX = (lng) => (lng - GEO.p[0]) * GEO.p[2];
+  const projY = (lat) => (GEO.p[1] - lat) * GEO.p[3];
+
+  function renderMap(openByFac, isToday) {
+    const wrap = $("#map-wrap"), facs = cityFacilities(state.city).filter((f) => !state.hidden.has(f.id));
+    const pts = []; let noxy = 0;
+    for (const f of facs) {
+      const c = (f.lat && f.lng) ? [f.lat, f.lng, 0] : COORD[f.id];
+      if (!c) { noxy++; continue; }
+      pts.push({ f, x: projX(c[1]), y: projY(c[0]), ap: c[2] });
+    }
+    $("#map-note").textContent = `${pts.length}곳 위치` + (noxy ? ` · 미등록 ${noxy}곳` : "");
+    $("#map-caret").textContent = state.mapOpen ? "−" : "+";
+    $("#mapbox").querySelector(".pick-btn").setAttribute("aria-expanded", state.mapOpen);
+    wrap.hidden = !state.mapOpen;
+    if (!state.mapOpen) return;
+    if (state.mapSel && !pts.some((p) => p.f.id === state.mapSel)) state.mapSel = null;
+
+    const hs = state.city === "화성";
+    const paths = `<path class="mcity${hs ? " on" : ""}" d="${GEO.hs}"/>`
+      + ["su", "gi", "ci"].map((k) => `<path class="mcity${hs ? "" : " on"}" d="${GEO[k]}"/>`).join("");
+    const dots = pts.map(({ f, x, y, ap }) => {
+      const n = openByFac.get(f.id) || 0;
+      const cls = `dot${n && !isToday ? " has" : ""}${state.mapSel === f.id ? " sel" : ""}`;
+      const shape = ap ? `<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="6.5"/>`
+        : `<rect x="${(x - 6).toFixed(0)}" y="${(y - 6).toFixed(0)}" width="12" height="12"/>`;
+      return `<g class="${cls}" data-mapfac="${esc(f.id)}"><title>${esc(f.name)}${isToday ? "" : ` · 빈 시간 ${n}칸`}</title>${shape}</g>`;
+    }).join("");
+
+    let info = `<div class="map-legend">
+      <span><i></i>빈 시간 있음</span><span><i class="o"></i>빈 시간 없음</span>
+      <span><i class="r"></i>대략적 위치(공원·동·읍 기준)</span><span>점을 누르면 상세가 보입니다</span></div>`;
+    const sel = pts.find((p) => p.f.id === state.mapSel);
+    if (sel) {
+      const f = sel.f, n = openByFac.get(f.id) || 0;
+      const meta = [f.district || (f.city === "화성" ? "화성시" : ""), `${f.courts || "?"}면`,
+                    f.extra.fee || (f.extra.paid ? "유료" : ""), sel.ap ? "대략적 위치" : ""].filter(Boolean).join(" · ");
+      info = `<div class="map-info">
+        <div><div class="mi-name">${esc(f.name)}</div><div class="mi-meta">${esc(meta)}</div></div>
+        <div class="mi-cnt">${isToday ? "–" : n}<small style="font-size:.6rem;color:var(--sub)"> 빈 시간</small></div>
+        <div class="mi-links">
+          <a class="mi-btn" href="${esc(f.booking_url)}" target="_blank" rel="noopener">예약 페이지</a>
+          <a class="mi-btn ghost" href="https://map.kakao.com/?q=${encodeURIComponent(f.name + " " + f.city)}" target="_blank" rel="noopener">카카오맵</a>
+        </div></div>`;
+    }
+    wrap.innerHTML = `<svg class="map" viewBox="${GEO.vb}" preserveAspectRatio="xMidYMid meet" role="img"
+        aria-label="화성시와 용인시 테니스장 위치 지도">
+        <g>${paths}</g>
+        <text class="mlabel" x="300" y="300">화성</text><text class="mlabel" x="735" y="170">용인</text>
+        <g>${dots}</g></svg>${info}`;
+  }
+
+  // 날짜를 고르지 않고, 수집된 모든 날짜에서 조건에 맞는 빈 시간만 모아 보여준다
+  function renderAllDays() {
+    const d = state.data, byDate = state.byDate, today = todayISO();
+    const dates = Object.keys(byDate).filter((x) => x > today).sort();   // 당일 예약은 마감이라 오늘은 제외
+    const bandTxt = `평일 ${BAND_TXT[state.bandWd]} · 주말·공휴일 ${BAND_TXT[state.bandHol]}`;
+    let total = 0, html = "";
+    const places = new Set(), openByFac = new Map();
+
+    for (const iso of dates) {
+      const vis = byDate[iso].filter((x) => state.vis.has(x.ci) && inBand(x.start, bandFor(iso)));
+      const rows = vis.filter((x) => x.s === "a");          // 지금 예약할 수 있는 칸
+      const pres = vis.filter((x) => x.s === "p");          // 비어 있지만 접수 시작 전
+      if (!rows.length && !pres.length) continue;
+      total += rows.length;
+      const byFac = new Map();                              // 시설 → {a: 시작시각→코트들, p: 같은 형식}
+      for (const r of rows.concat(pres)) {
+        const [fi] = d.courts[r.ci];
+        if (!byFac.has(fi)) byFac.set(fi, { a: new Map(), p: new Map() });
+        const times = byFac.get(fi)[r.s === "p" ? "p" : "a"];
+        if (!times.has(r.start)) times.set(r.start, []);
+        times.get(r.start).push(r.ci);
+      }
+      const facHtml = [...byFac.entries()].map(([fi, g]) => {
+        const f = d.facilities[fi];
+        let n = 0;
+        const chip = (start, cis, pre) => {
+          const who = cis.map((ci) => d.courts[ci][1]).filter(Boolean).join(", ");
+          const sup = cis.length > 1 ? `<sup>${cis.length}</sup>` : "";
+          const tail = who ? ` · ${esc(who)}` : "";
+          return pre
+            ? `<span class="slot p" title="${iso} ${start}${tail} 비어 있지만 접수 시작 전">${start}${sup}</span>`
+            : `<a class="slot a" href="${esc(d.courts[cis[0]][2])}" target="_blank" rel="noopener"
+                title="${iso} ${start}${tail} 비어 있음">${start}${sup}</a>`;
+        };
+        const aChips = [...g.a.entries()].sort((x, y) => x[0].localeCompare(y[0]))
+          .map(([start, cis]) => { n += cis.length; return chip(start, cis, false); }).join("");
+        const pChips = [...g.p.entries()].sort((x, y) => x[0].localeCompare(y[0]))
+          .map(([start, cis]) => chip(start, cis, true)).join("");
+        if (n) places.add(f.id);
+        openByFac.set(f.id, (openByFac.get(f.id) || 0) + n);
+        const openTxt = g.p.size ? openLabel(f, iso) : "";
+        const sub = [f.city === "용인" ? f.district : [f.extra.fee, `${f.courts}면`].filter(Boolean).join(" · "),
+                     g.p.size ? (openTxt ? `${openTxt} 접수 시작` : "접수 시작 전") : ""].filter(Boolean).join(" · ");
+        return { n, html: `<div class="arow">
+          <div class="aname">${esc(f.name)}<span class="ameta">${esc(sub)}</span></div>
+          <div class="slots">${aChips}${pChips}</div></div>` };
+      }).sort((a, b) => b.n - a.n).map((x) => x.html).join("");
+      const dt = new Date(iso + "T00:00:00");
+      const we = dt.getDay() === 0 || dt.getDay() === 6;
+      html += `<section class="dayblk">
+        <div class="dayblk-head">
+          <div class="db-d">${dt.getMonth() + 1}.${pad(dt.getDate())}<span class="db-w${we ? " we" : ""}">${WD[dt.getDay()]}</span></div>
+          <div class="db-n">${rows.length ? `${rows.length}칸 · ${byFac.size}곳` : `${byFac.size}곳`}${pres.length ? ` · 접수 전 ${pres.length}칸` : ""}</div>
+        </div>${facHtml}</section>`;
+    }
+
+    $("#hw-list").innerHTML = html ||
+      '<div class="empty">조건에 맞는 빈 시간이 없습니다. 시간대나 테니스장 선택을 넓혀 보세요.</div>';
+    const fmt = (iso) => `${+iso.slice(5, 7)}월 ${+iso.slice(8, 10)}일`;
+    $("#hw-title").innerHTML = dates.length
+      ? `${fmt(dates[0])}~${fmt(dates[dates.length - 1])}<br><b>${places.size}곳</b>에 자리가 있습니다<br><span style="font-size:.78rem;color:var(--sub)">${bandTxt}</span>`
+      : "표시할 날짜가 없습니다";
+    $("#hw-count").innerHTML = `${total}<i>칸</i>`;
+    renderMap(openByFac, false);
+  }
+
+  function renderUpdated(d) {
+    const el = $("#updated");
+    const agoOf = (iso) => {
+      const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+      return { m, txt: m < 1 ? "방금" : m < 60 ? `${m}분 전` : `${Math.floor(m / 60)}시간 ${m % 60}분 전` };
+    };
+    const by = d.collected || {};
+    // 도시마다 수집 주기가 달라서(화성 5분·용인 20분) 따로 보여준다
+    const rows = ["화성", "용인"].filter((c) => by[c]).map((c) => {
+      const t = new Date(by[c]);
+      const { m, txt } = agoOf(by[c]);
+      const late = m > (c === "화성" ? 40 : 70);
+      return `<span class="${late ? "late" : ""}">${c} ${pad(t.getHours())}:${pad(t.getMinutes())} · ${txt}</span>`;
+    });
+    el.classList.remove("stale");
+    if (rows.length) { el.innerHTML = `UPDATED<br>${rows.join("<br>")}`; return; }
+    const t = new Date(d.collected_at);                      // collected 필드가 없는 예전 데이터
+    const { m, txt } = agoOf(d.collected_at);
+    el.innerHTML = `UPDATED ${pad(t.getMonth() + 1)}.${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}<br>${txt}`;
+    el.classList.toggle("stale", m > 120);
+  }
+
+  // ---------- 화성 ----------
+  function hwModel(d, city) {
+    const byDate = {};          // iso -> [{ci,start,end,s}]  (해당 도시 코트만)
+    for (const [ci, md, start, end, s] of d.slots) {
+      if (d.facilities[d.courts[ci][0]].city !== city) continue;
+      const iso = `${d.date_year[md]}-${md}`;
+      (byDate[iso] ||= []).push({ ci, start, end, s });
+    }
+    // 예약 마감일(시간표가 비어 있는 날)도 달력에 날짜로 잡히게 한다
+    for (const f of d.facilities) {
+      if (f.city !== city) continue;
+      for (const days of Object.values(f.extra.closed_days || {})) for (const iso of days) byDate[iso] ||= [];
+    }
+    return byDate;
+  }
+  const agoText = (iso) => {
+    if (!iso) return "";
+    const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    return m < 1 ? "방금 확인" : m < 60 ? `${m}분 전 확인` : `${Math.floor(m / 60)}시간 전 확인`;
+  };
+
+  const monthKey = (iso) => iso.slice(0, 7);
+  const shiftMonth = (key, n) => {
+    const [y, m] = key.split("-").map(Number);
+    const d = new Date(y, m - 1 + n, 1);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+  };
+
+  function renderDays(byDate) {
+    const today = todayISO();
+    const dates = Object.keys(byDate).filter((x) => x >= today).sort();
+    if (!state.day || !dates.includes(state.day)) {
+      state.day = dates.find((x) => x > today) || dates[0];   // 기본: 내일
+    }
+    if (!dates.length) { $("#days").innerHTML = ""; return; }
+
+    const have = new Set(dates);
+    const counts = {};
+    const preCounts = {};
+    for (const iso of dates) {
+      const vis = byDate[iso].filter((x) => state.vis.has(x.ci) && inBand(x.start, bandFor(iso)));
+      counts[iso] = vis.filter((x) => x.s === "a").length;
+      preCounts[iso] = vis.filter((x) => x.s === "p").length;
+    }
+
+    // 보여줄 달: 선택한 날짜가 든 달 (수집 데이터가 있는 달만 이동 가능)
+    const months = new Set(dates.map(monthKey));
+    if (!state.month || !months.has(state.month)) state.month = monthKey(state.day);
+    const [Y, M] = state.month.split("-").map(Number);
+    const firstDow = new Date(Y, M - 1, 1).getDay();      // 1일의 요일 (0=일)
+    const lastDate = new Date(Y, M, 0).getDate();         // 말일
+    const prev = shiftMonth(state.month, -1);
+    const next = shiftMonth(state.month, 1);
+
+    let anyPre = false;
+    const blank = '<div class="cell pad"><span class="d"></span><span class="c"></span></div>';
+    let cells = blank.repeat(firstDow);
+    for (let day = 1; day <= lastDate; day++) {
+      const iso = `${Y}-${pad(M)}-${pad(day)}`;
+      const dow = new Date(Y, M - 1, day).getDay();
+      const inR = have.has(iso);
+      const isToday = iso === today;
+      const n = counts[iso] || 0;
+      const pre = preCounts[iso] || 0;
+      const onlyPre = !n && pre > 0;                     // 빈 칸은 있지만 아직 접수 전인 날
+      if (onlyPre && inR) anyPre = true;
+      const cls = ["cell", inR ? "" : "off", dow === 0 ? "sun" : "", isToday ? "today" : ""].filter(Boolean).join(" ");
+      const txt = inR ? (isToday ? "–" : (onlyPre ? pre : n)) : "";
+      const aria = `${M}월 ${day}일${inR ? (isToday ? " 오늘" : (onlyPre ? ` 접수 시작 전 ${pre}칸` : ` 빈 시간 ${n}칸`)) : " 데이터 없음"}`;
+      cells += `<button class="${cls}" id="day-${iso}" aria-pressed="${!state.allDays && iso === state.day}" aria-label="${aria}"
+        ${inR ? `data-day="${iso}"` : "disabled"}><span class="d">${day}</span>
+        <span class="c${onlyPre ? " pre" : (inR && !isToday && n ? "" : " z")}">${txt}</span></button>`;
+    }
+    cells += blank.repeat((7 - (firstDow + lastDate) % 7) % 7);
+
+    $("#days").innerHTML = `<div class="cal-head">
+        <div><div class="cal-month">${Y}. ${pad(M)}</div><div class="cal-range">Next ${dates.length} days</div></div>
+        <div class="cal-nav">
+          <button class="chip cal-all" data-allday="1" aria-pressed="${!!state.allDays}">모든 날짜</button>
+          <button class="mo" data-month="${prev}" aria-label="이전 달"${months.has(prev) ? "" : " disabled"}>‹</button>
+          <button class="mo" data-month="${next}" aria-label="다음 달"${months.has(next) ? "" : " disabled"}>›</button>
+        </div>
+      </div>
+      <div class="cal-wd">${WD_EN.map((w) => `<span>${w}</span>`).join("")}</div>
+      <div class="cal-grid">${cells}</div>
+      <p class="cal-cap">${state.allDays
+        ? "모든 날짜 모드입니다. 아래에 수집된 날짜 전체에서 조건에 맞는 빈 시간만 모아 보여줍니다. 날짜를 누르면 그 날짜만 봅니다."
+        : "날짜 아래 숫자는 그날 예약 가능한 시간 칸 수입니다. 오늘은 당일 예약이 마감돼 –로 표시합니다."}${
+        anyPre ? " 점선 밑줄이 그려진 숫자는 비어 있지만 아직 접수가 시작되지 않은 칸 수입니다." : ""}</p>`;
+  }
+
+  function renderHw() {
+    const d = state.data, byDate = state.byDate;
+    state.vis = visibleCourts();
+    const yi = state.city === "용인";
+    $("#pick-hw").hidden = yi;          // 용인 선택 목록은 아래 접수 일정 쪽(#pick-yi)에 있음
+    if (!yi) renderPick("화성");
+    renderDays(byDate);
+    const isToday = state.day === todayISO();
+    $("#today-note").hidden = !isToday;
+    $("#yi-note").hidden = !yi;
+    if (state.allDays) { $("#today-note").hidden = true; renderAllDays(); return; }
+    const md = (state.day || "").slice(5);
+    const rows = (byDate[state.day] || []).filter((x) => state.vis.has(x.ci) && inBand(x.start, bandFor(state.day)));
+    const facs = new Map();     // facIdx -> Map(courtIdx -> slots)
+    for (const r of rows) {
+      const [fi] = d.courts[r.ci];
+      if (!facs.has(fi)) facs.set(fi, new Map());
+      const m = facs.get(fi);
+      if (!m.has(r.ci)) m.set(r.ci, []);
+      m.get(r.ci).push(r);
+    }
+    // 그날 예약 마감인 코트 (용인: 시간표 대신 자리표시만 오는 날)
+    const closedBy = new Map(); // facIdx -> [court label]
+    d.facilities.forEach((f, fi) => {
+      if (f.city !== state.city || state.hidden.has(f.id)) return;
+      for (const [court, days] of Object.entries(f.extra.closed_days || {})) {
+        if (days.includes(state.day)) { if (!closedBy.has(fi)) closedBy.set(fi, []); closedBy.get(fi).push(court); }
+      }
+      if (closedBy.has(fi) && !facs.has(fi)) facs.set(fi, new Map());
+    });
+    const cards = [...facs.entries()].map(([fi, courts]) => {
+      const f = d.facilities[fi];
+      let open = 0;
+      const preOpen = openLabel(f, state.day);
+      const hasPre = !state.onlyOpen && [...courts.values()].some((ss) => ss.some((s) => s.s === "p"));
+      const closedHtml = state.onlyOpen ? "" : (closedBy.get(fi) || []).map((c) =>
+        `<div class="court"><div class="court-name">${esc(c)}</div><div class="closed">이날은 예약 마감</div></div>`).join("");
+      const courtHtml = [...courts.entries()]
+        .sort((a, b) => d.courts[a[0]][1].localeCompare(d.courts[b[0]][1], "ko", { numeric: true }))
+        .map(([ci, slots]) => {
+          const [, label, url] = d.courts[ci];
+          const checked = yi ? agoText((d.checked || {})[`${ci}|${md}`]) : "";
+          slots.sort((a, b) => a.start.localeCompare(b.start));
+          const shown = state.onlyOpen ? slots.filter((s) => s.s === "a") : slots;
+          open += slots.filter((s) => s.s === "a").length;
+          if (!shown.length) return "";
+          const pills = shown.map((s) => {
+            const title = `${s.start}~${s.end}`;
+            if (s.s === "a" && !isToday) return `<a class="slot a" href="${esc(url)}" target="_blank" rel="noopener" title="${title} 예약 가능">${s.start}</a>`;
+            if (s.s === "a") return `<span class="slot today" title="${title} 비어 있음(당일 예약 불가)">${s.start}</span>`;
+            if (s.s === "p") return `<span class="slot p" title="${title} 비어 있지만 접수 시작 전${preOpen ? ` (${preOpen} 접수 시작)` : ""}">${s.start}</span>`;
+            return `<span class="slot ${s.s}" title="${title}">${s.start}</span>`;
+          }).join("");
+          return `<div class="court"><div class="court-name">${esc(label)}${checked ? `<small>${checked}</small>` : ""}</div><div class="slots">${pills}</div></div>`;
+        }).join("") + closedHtml;
+      const n = isToday ? 0 : open;
+      const meta = yi
+        ? `${esc(f.district)} · ${f.extra.paid ? "유료" : "무료"}`
+        : `${f.courts}면 · ${esc(f.extra.fee || "")} · ${esc(f.extra.operator || "")}`;
+      return { open: n, id: f.id, html: (i) => `<article class="fac">
+        <div class="fac-head">
+          <div class="idx">${pad(i + 1)}</div>
+          <div><div class="fac-name">${esc(f.name)}</div>
+          <div class="fac-meta">${meta}</div></div>
+          <div class="cnt${n ? "" : " zero"}">${isToday ? "–" : n}<small>빈 시간</small></div>
+        </div>
+        ${courtHtml || '<div class="court"><div class="none">조건에 맞는 빈 시간이 없습니다.</div></div>'}
+        ${hasPre ? `<div class="prenote">점선 표시된 시간은 비어 있지만 ${preOpen ? `${preOpen}에 접수가 시작됩니다` : "아직 접수가 시작되지 않았습니다"} — 그 전에는 예약할 수 없습니다.</div>` : ""}</article>` };
+    });
+    cards.sort((a, b) => b.open - a.open);
+    renderMap(new Map(cards.map((c) => [c.id, c.open])), isToday);
+    const noneSelected = cityFacilities(state.city).every((f) => state.hidden.has(f.id));
+    $("#hw-list").innerHTML = cards.length ? cards.map((c, i) => c.html(i)).join("")
+      : `<div class="empty">${noneSelected ? "표시할 테니스장이 없습니다. ‘테니스장 선택’에서 골라 주세요." : "이 날짜의 데이터가 없습니다."}</div>`;
+
+    // 요약
+    const total = isToday ? 0 : rows.filter((r) => r.s === "a").length;
+    const placeN = cards.filter((c) => c.open > 0).length;
+    const dt = new Date(state.day + "T00:00:00");
+    const bandTxt = BAND_TXT[bandFor(state.day)] + (isHoliday(state.day) ? "" : " (평일 기준)");
+    $("#hw-title").innerHTML = isToday
+      ? `오늘은 <b>당일 예약 마감</b>`
+      : `${dt.getMonth() + 1}월 ${dt.getDate()}일 ${WD[dt.getDay()]}요일 ${bandTxt}<br><b>${placeN}곳</b>에 자리가 있습니다`;
+    $("#hw-count").innerHTML = `${isToday ? "–" : total}<i>칸</i>`;
+  }
+
+  // ---------- 용인 ----------
+  function stateTag(s) {
+    const cls = s === "접수중" ? "open" : s === "접수대기" ? "wait" : "done";
+    return `<span class="tag ${cls}">${esc(s || "-")}</span>`;
+  }
+
+  function renderYi() {
+    renderPick("용인");
+    const all = state.data.facilities.filter((f) => f.city === "용인");
+    const facs = all.filter((f) => !state.hidden.has(f.id));
+    const gus = ["전체", ...new Set(all.map((f) => f.district.split(" ")[0]).filter(Boolean))];
+    $("#gu-filters").innerHTML = gus.map((g) => `<button class="chip" id="gu-${esc(g)}" data-gu="${esc(g)}" aria-pressed="${g === state.gu}">${esc(g)}</button>`).join("");
+    const list = facs.filter((f) => state.gu === "전체" || f.district.startsWith(state.gu));
+    list.sort((a, b) => a.district.localeCompare(b.district, "ko") || a.name.localeCompare(b.name, "ko"));
+    $("#yi-list").innerHTML = list.map((f, i) => {
+      const items = f.extra.items || [];
+      // 이용 월별로 묶기: "2026-11-01 ~ 2026-11-30" → "11월"
+      const byMonth = {};
+      for (const it of items) {
+        const m = (it.use_period || "").slice(5, 7);
+        const key = m ? `${parseInt(m, 10)}월` : "기타";
+        (byMonth[key] ||= []).push(it);
+      }
+      const months = Object.keys(byMonth).sort((a, b) => parseInt(a) - parseInt(b));
+      const monthRows = months.map((m) => {
+        const its = byMonth[m];
+        const general = its.filter((x) => x.kind === "일반예약");
+        const courtsTxt = (general.length ? general : its).map((x) => `${esc(x.court || "코트")} ${stateTag(x.state)}`).join(" ");
+        const prior = its.filter((x) => x.kind !== "일반예약" && x.state !== "마감")
+          .map((x) => `${x.kind} ${x.accept_period.split("~")[0].trim().slice(5)}`);
+        const gen = general[0] ? `일반 ${general[0].accept_period.split("~")[0].trim().slice(5)}~` : "";
+        const sub = [...new Set(prior)].concat(gen ? [gen] : []).join(" · ");
+        return `<dt>${m}</dt><dd>${courtsTxt}${sub ? `<div class="fac-meta">${esc(sub)}</div>` : ""}</dd>`;
+      }).join("");
+      const openN = items.filter((x) => x.state === "접수중").length;
+      return `<article class="fac">
+        <div class="fac-head">
+          <div class="idx">${pad(i + 1)}</div>
+          <div><div class="fac-name">${esc(f.name)}</div>
+          <div class="fac-meta">${esc(f.district)} · ${f.courts || "?"}개 예약단위 · ${f.extra.paid ? "유료" : "무료"}</div></div>
+          <div class="cnt${openN ? "" : " zero"}">${openN}<small>접수중</small></div>
+        </div>
+        <dl class="kv">${monthRows}
+          ${f.extra.hours ? `<dt>운영</dt><dd>${esc(f.extra.hours)}</dd>` : ""}
+          ${f.extra.fee ? `<dt>요금</dt><dd>${esc(f.extra.fee)}</dd>` : ""}
+          ${f.extra.contact ? `<dt>문의</dt><dd>${esc(f.extra.contact)}</dd>` : ""}
+        </dl>
+        <a class="btn" href="${esc(f.booking_url)}" target="_blank" rel="noopener">예약 페이지에서 빈 시간 보기</a>
+      </article>`;
+    }).join("") || `<div class="empty">${facs.length ? "해당 지역의 테니스장이 없습니다." : "표시할 테니스장이 없습니다. ‘테니스장 선택’에서 골라 주세요."}</div>`;
+  }
+
+  // ---------- 공통 ----------
+  function render() {
+    const hw = state.city === "화성";
+    $("#tab-hw").setAttribute("aria-selected", hw);
+    $("#tab-yi").setAttribute("aria-selected", !hw);
+    $("#view-yi").hidden = hw;          // 시간표 화면은 두 도시 공통, 용인은 접수 일정 카드를 아래에 추가
+    document.querySelectorAll("#row-wd .chip").forEach((b) => b.setAttribute("aria-pressed", b.dataset.wd === state.bandWd));
+    document.querySelectorAll("#row-hol .chip").forEach((b) => b.setAttribute("aria-pressed", b.dataset.hol === state.bandHol));
+    // 하루 보기에서는 그날에 해당하는 줄만 진하게 보여준다
+    const hol = !state.allDays && state.day ? isHoliday(state.day) : null;
+    $("#row-wd").classList.toggle("off", hol === true);
+    $("#lbl-wd").classList.toggle("off", hol === true);
+    $("#row-hol").classList.toggle("off", hol === false);
+    $("#lbl-hol").classList.toggle("off", hol === false);
+    $("#only-open").setAttribute("aria-pressed", state.allDays || state.onlyOpen);
+    $("#only-open").disabled = state.allDays;      // 모든 날짜 모드는 빈 시간만 보여준다
+    state.byDate = state.models[state.city];
+    renderHw();
+    if (!hw) renderYi();
+  }
+
+  document.addEventListener("click", (e) => {
+    const dot = e.target.closest && e.target.closest("[data-mapfac]");
+    if (dot) {                                   // 지도 점 선택/해제
+      state.mapSel = state.mapSel === dot.dataset.mapfac ? null : dot.dataset.mapfac;
+      render();
+      return;
+    }
+    const t = e.target.closest("button");
+    if (!t) return;
+    if (t.dataset.city) state.city = t.dataset.city;
+    else if (t.dataset.day) { state.day = t.dataset.day; state.allDays = false; }
+    else if (t.dataset.allday) state.allDays = !state.allDays;
+    else if (t.dataset.month) state.month = t.dataset.month;
+    else if (t.dataset.wd) state.bandWd = t.dataset.wd;
+    else if (t.dataset.hol) state.bandHol = t.dataset.hol;
+    else if (t.dataset.only) state.onlyOpen = !state.onlyOpen;
+    else if (t.dataset.gu) state.gu = t.dataset.gu;
+    else if (t.dataset.fac) {
+      if (state.hidden.has(t.dataset.fac)) state.hidden.delete(t.dataset.fac);
+      else state.hidden.add(t.dataset.fac);
+    }
+    else if (t.dataset.mapt) state.mapOpen = !state.mapOpen;
+    else if (t.dataset.pickall) cityFacilities(t.dataset.pickall).forEach((f) => state.hidden.delete(f.id));
+    else if (t.dataset.picknone) cityFacilities(t.dataset.picknone).forEach((f) => state.hidden.add(f.id));
+    else return;
+    savePrefs();
+    render();
+  });
+
+  // 데이터 읽는 순서:
+  //  1) GitHub API — data 브랜치 최신본을 1분 이내로 반영 (IP당 시간당 60회 제한, 넘으면 다음으로)
+  //  2) raw.githubusercontent — 같은 파일이지만 GitHub 이 최대 5분 캐시함
+  //  3) 사이트 사본 — 용인 수집 때만 갱신
+  const DATA_URLS = [
+    "https://api.github.com/repos/AINZZANG/tennis-court/contents/data.json?ref=data",
+    "https://raw.githubusercontent.com/AINZZANG/tennis-court/data/data.json",
+    "data.json",
+  ];
+  const API_HEADERS = { Accept: "application/vnd.github.raw" };
+  let lastLoad = 0;
+  async function load() {
+    lastLoad = Date.now();
+    for (const url of DATA_URLS) {
+      try {
+        const api = url.startsWith("https://api.github.com/");
+        const res = await fetch(url + (url.includes("?") ? "&" : "?") + "t=" + Date.now(),
+          { cache: "no-store", headers: api ? API_HEADERS : {} });
+        if (!res.ok) throw new Error(res.status);
+        const d = await res.json();
+        if (!Array.isArray(d.facilities) || !Array.isArray(d.slots)) throw new Error("형식 오류");
+        state.data = d;
+        state.models = { "화성": hwModel(d, "화성"), "용인": hwModel(d, "용인") };
+        renderUpdated(d);
+        $("#tab-hw-n").textContent = `${d.facilities.filter((f) => f.city === "화성").length}`;
+        $("#tab-yi-n").textContent = `${d.facilities.filter((f) => f.city === "용인").length}`;
+        render();
+        return;
+      } catch (e) { /* 다음 주소로 */ }
+    }
+    $("#updated").textContent = "데이터를 불러오지 못했습니다. 잠시 후 새로고침하세요.";
+    $("#updated").classList.add("stale");
+  }
+  load();
+  setInterval(load, 5 * 60 * 1000);   // 열어둔 화면도 5분마다 새 데이터 확인
+  // 휴대폰은 화면이 꺼지거나 다른 앱으로 가면 타이머가 멈춘다 → 다시 볼 때 바로 새로 받기 (1분 안에 받았으면 생략)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && Date.now() - lastLoad > 60 * 1000) load();
+  });
+})();
+</script>
+</body>
+</html>
